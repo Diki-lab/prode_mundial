@@ -688,7 +688,13 @@
 
         <div class="profile-box">
           <div class="profile-grid">
-            <div class="profile-item">🏆 Mis puntos<br><small class="muted">Próximamente</small></div>
+            <div class="profile-item">
+              <div>👤 Mi usuario</div>
+              <input id="profileNameInput" placeholder="Escribí tu nombre" style="margin-top:10px">
+              <button class="primary" onclick="saveProfileName()" style="margin-top:10px">Guardar usuario</button>
+              <br><small class="muted" id="profileNameStatus">Sin usuario guardado</small>
+            </div>
+            <div class="profile-item">🏆 Mis puntos<br><small class="muted" id="myPointsStatus">0 pts</small></div>
             <div class="profile-item">⚽ Mis pronósticos<br><small class="muted">Próximamente</small></div>
             <div class="profile-item">
               <div>🌙/☀️ Tema</div>
@@ -719,7 +725,8 @@
       predictions: 'predictions2026',
       resultLock: 'lockResults2026',
       predictionLock: 'lockPredictions2026',
-      theme: 'theme2026'
+      theme: 'theme2026',
+      profileName: 'profileName2026'
     };
 
     const defaultPlayers = [
@@ -852,11 +859,53 @@
     if (!Array.isArray(predictions)) predictions = [];
 
     let currentTheme = localStorage.getItem(STORAGE_KEYS.theme) || 'light';
+    let currentProfileName = localStorage.getItem(STORAGE_KEYS.profileName) || '';
     let isAdmin = false;
     const ADMIN_PASSWORD = 'ale2026';
 
     let isResultLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.resultLock) || 'false');
     let arePredictionsLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictionLock) || 'false');
+
+    function applyProfile() {
+      const profileNameInput = document.getElementById('profileNameInput');
+      const profileNameStatus = document.getElementById('profileNameStatus');
+      const myPointsStatus = document.getElementById('myPointsStatus');
+
+      if (profileNameInput) {
+        profileNameInput.value = currentProfileName;
+      }
+
+      if (profileNameStatus) {
+        profileNameStatus.innerText = currentProfileName ? `Usuario guardado: ${currentProfileName}` : 'Sin usuario guardado';
+      }
+
+      if (myPointsStatus) {
+        const points = currentProfileName
+          ? predictions.filter(p => p.player === currentProfileName).reduce((sum, p) => sum + pointsFor(p), 0)
+          : 0;
+        myPointsStatus.innerText = `${points} pts`;
+      }
+    }
+
+    function saveProfileName() {
+      const input = document.getElementById('profileNameInput');
+      const name = input ? input.value.trim() : '';
+      if (!name) {
+        alert('Escribí tu nombre primero');
+        return;
+      }
+
+      currentProfileName = name;
+      localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
+
+      if (!players.includes(name)) {
+        players.push(name);
+      }
+
+      saveAll();
+      renderAll();
+      alert('Usuario guardado correctamente');
+    }
 
     function applyTheme() {
       document.body.classList.toggle('dark-theme', currentTheme === 'dark');
@@ -1016,7 +1065,9 @@
     }
 
     function renderSelectors() {
-      document.getElementById('playerSelect').innerHTML = players
+      const selectablePlayers = isAdmin || !currentProfileName ? players : [currentProfileName];
+
+      document.getElementById('playerSelect').innerHTML = selectablePlayers
         .map(player => `<option value="${escapeHtml(player)}">${escapeHtml(player)}</option>`)
         .join('');
 
@@ -1358,6 +1409,7 @@
 
     function renderAll() {
       applyTheme();
+      applyProfile();
       updateAdminUI();
       renderFixture();
       renderSelectors();
@@ -1408,6 +1460,7 @@
       assertTest('deletePrediction existe', typeof deletePrediction === 'function');
       assertTest('boton admin superior existe', document.getElementById('adminBtnTop') !== null);
       assertTest('toggleTheme existe', typeof toggleTheme === 'function');
+      assertTest('saveProfileName existe', typeof saveProfileName === 'function');
       assertTest('escapeHtml bloquea simbolos peligrosos', escapeHtml('<script>') === '&lt;script&gt;');
       assertTest('export ranking tiene saltos seguros', buildRankingExportText().includes('\n\n'));
       assertTest('resultado exacto suma 3 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, testMatches) === 3);
