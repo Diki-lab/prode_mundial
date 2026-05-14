@@ -511,8 +511,26 @@
 </head>
 
 <body>
+  <div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#082f6f,#0d47a1,#00a86b);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;">
+    <div style="width:100%;max-width:420px;background:white;border-radius:28px;padding:30px;box-shadow:0 20px 50px rgba(0,0,0,.28);text-align:center;">
+      <h1 style="margin-top:0;font-size:32px;">🏆 Prode Mundial 2026</h1>
+      <p style="color:#687386;margin-bottom:25px;">Ingresá para continuar</p>
+
+      <input id="loginUser" placeholder="Usuario" style="margin-bottom:14px">
+      <input id="loginPassword" type="password" placeholder="Contraseña" style="margin-bottom:18px">
+
+      <button class="primary" style="width:100%;" onclick="loginApp()">Ingresar</button>
+
+      <p id="loginError" style="color:#b42318;font-weight:700;margin-top:14px;display:none;">Usuario o contraseña incorrecta</p>
+
+      <div style="margin-top:18px;color:#687386;font-size:14px;">
+        Usuario normal: solo escribí tu nombre en usuario
+      </div>
+    </div>
+  </div>
   <header>
     <div class="top-actions">
+      <button id="themeHeaderBtn" class="top-action-btn" onclick="toggleTheme()">🌙</button>
       <button id="profileBtn" class="top-action-btn" onclick="showTab('perfil')">👤 Perfil</button>
       <button id="adminBtnTop" class="top-action-btn" onclick="toggleAdminMode()">👑 Admin</button>
     </div>
@@ -696,11 +714,6 @@
             </div>
             <div class="profile-item">🏆 Mis puntos<br><small class="muted" id="myPointsStatus">0 pts</small></div>
             <div class="profile-item">⚽ Mis pronósticos<br><small class="muted">Próximamente</small></div>
-            <div class="profile-item">
-              <div>🌙/☀️ Tema</div>
-              <button class="primary" id="themeToggleBtn" onclick="toggleTheme()" style="margin-top:10px">Cambiar tema</button>
-              <br><small class="muted" id="themeStatus">Tema claro activo</small>
-            </div>
             <div class="profile-item">📱 Foto / Avatar<br><small class="muted">Próximamente</small></div>
           </div>
         </div>
@@ -726,7 +739,8 @@
       resultLock: 'lockResults2026',
       predictionLock: 'lockPredictions2026',
       theme: 'theme2026',
-      profileName: 'profileName2026'
+      profileName: 'profileName2026',
+      adminSession: 'adminSession2026'
     };
 
     const defaultPlayers = [
@@ -860,7 +874,8 @@
 
     let currentTheme = localStorage.getItem(STORAGE_KEYS.theme) || 'light';
     let currentProfileName = localStorage.getItem(STORAGE_KEYS.profileName) || '';
-    let isAdmin = false;
+    let isAdmin = JSON.parse(localStorage.getItem(STORAGE_KEYS.adminSession) || 'false');
+    const ADMIN_USER = 'Admin';
     const ADMIN_PASSWORD = 'ale2026';
 
     let isResultLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.resultLock) || 'false');
@@ -903,21 +918,21 @@
       }
 
       saveAll();
-      renderAll();
+      if (currentProfileName) {
+      const loginScreen = document.getElementById('loginScreen');
+      if (loginScreen) loginScreen.style.display = 'none';
+    }
+
+    renderAll();
       alert('Usuario guardado correctamente');
     }
 
     function applyTheme() {
       document.body.classList.toggle('dark-theme', currentTheme === 'dark');
-      const themeToggleBtn = document.getElementById('themeToggleBtn');
-      const themeStatus = document.getElementById('themeStatus');
+      const themeHeaderBtn = document.getElementById('themeHeaderBtn');
 
-      if (themeToggleBtn) {
-        themeToggleBtn.innerText = currentTheme === 'dark' ? '☀️ Cambiar a claro' : '🌙 Cambiar a oscuro';
-      }
-
-      if (themeStatus) {
-        themeStatus.innerText = currentTheme === 'dark' ? 'Tema oscuro activo' : 'Tema claro activo';
+      if (themeHeaderBtn) {
+        themeHeaderBtn.innerText = currentTheme === 'dark' ? '☀️' : '🌙';
       }
     }
 
@@ -994,23 +1009,43 @@
       select.value = groups.includes(current) ? current : '';
     }
 
-    function toggleAdminMode() {
-      if (isAdmin) {
-        isAdmin = false;
-        alert('Modo administrador desactivado');
-        renderAll();
+    function loginApp() {
+      const user = document.getElementById('loginUser').value.trim();
+      const password = document.getElementById('loginPassword').value.trim();
+      const loginError = document.getElementById('loginError');
+
+      if (!user) {
+        loginError.style.display = 'block';
         return;
       }
 
-      const password = prompt('Ingresá contraseña de administrador');
-
-      if (password === ADMIN_PASSWORD) {
+      if (user.toLowerCase() === ADMIN_USER.toLowerCase() && password === ADMIN_PASSWORD) {
         isAdmin = true;
-        alert('Modo administrador activado 👑');
+        localStorage.setItem(STORAGE_KEYS.adminSession, 'true');
+        currentProfileName = ADMIN_USER;
       } else {
-        alert('Contraseña incorrecta');
+        isAdmin = false;
+        localStorage.setItem(STORAGE_KEYS.adminSession, 'false');
+        currentProfileName = user;
       }
 
+      localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
+
+      if (!players.includes(currentProfileName)) {
+        players.push(currentProfileName);
+      }
+
+      document.getElementById('loginScreen').style.display = 'none';
+      saveAll();
+      renderAll();
+    }
+
+    function toggleAdminMode() {
+      if (!isAdmin) return;
+
+      isAdmin = false;
+      localStorage.setItem(STORAGE_KEYS.adminSession, 'false');
+      alert('Modo administrador desactivado');
       renderAll();
     }
 
@@ -1053,14 +1088,20 @@
     function updateAdminUI() {
       const addPlayerBtn = document.getElementById('addPlayerBtn');
       const adminBtnTop = document.getElementById('adminBtnTop');
+      const playersTabBtn = [...document.querySelectorAll('.tab-btn')].find(btn => btn.innerText.includes('Jugadores'));
 
       if (addPlayerBtn) {
         addPlayerBtn.disabled = !isAdmin;
       }
 
       if (adminBtnTop) {
-        adminBtnTop.innerText = isAdmin ? '👑 Admin ON' : '👑 Admin';
+        adminBtnTop.innerText = '👑 Admin ON';
         adminBtnTop.classList.toggle('admin-on', isAdmin);
+        adminBtnTop.style.display = isAdmin ? 'inline-flex' : 'none';
+      }
+
+      if (playersTabBtn) {
+        playersTabBtn.style.display = isAdmin ? 'inline-block' : 'none';
       }
     }
 
@@ -1461,6 +1502,8 @@
       assertTest('boton admin superior existe', document.getElementById('adminBtnTop') !== null);
       assertTest('toggleTheme existe', typeof toggleTheme === 'function');
       assertTest('saveProfileName existe', typeof saveProfileName === 'function');
+      assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
+      assertTest('usuario admin no distingue mayusculas', ADMIN_USER.toLowerCase() === 'admin');
       assertTest('escapeHtml bloquea simbolos peligrosos', escapeHtml('<script>') === '&lt;script&gt;');
       assertTest('export ranking tiene saltos seguros', buildRankingExportText().includes('\n\n'));
       assertTest('resultado exacto suma 3 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, testMatches) === 3);
