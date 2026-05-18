@@ -145,11 +145,70 @@
     }
 
     .profile-item {
-      background: var(--card);
+      background: linear-gradient(180deg, var(--card), color-mix(in srgb, var(--soft) 55%, var(--card)));
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 12px;
+      border-radius: 18px;
+      padding: 16px;
       font-weight: 800;
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .profile-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0,0,0,.10);
+    }
+
+    .profile-avatar {
+      width: 82px;
+      height: 82px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      margin: 0 auto 12px;
+      color: white;
+      font-weight: 900;
+      box-shadow: 0 10px 22px rgba(13,71,161,.22);
+      overflow: hidden;
+    }
+
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .profile-title {
+      font-size: 15px;
+      margin-bottom: 8px;
+      text-align: center;
+    }
+
+    .profile-subtitle {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin-bottom: 14px;
+    }
+
+    .profile-highlight {
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      color: white;
+      border: 0;
+    }
+
+    .profile-big-number {
+      font-size: 34px;
+      font-weight: 900;
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    .profile-center {
+      text-align: center;
     }
 
     header h1 {
@@ -474,10 +533,132 @@
     }
 
     @media (max-width: 720px) {
-      main {
-        padding: 12px;
-        margin-top: -20px;
+      body {
+        overflow-x: hidden;
       }
+
+      header {
+        padding: 128px 12px 40px;
+      }
+
+      header h1 {
+        font-size: 34px;
+        line-height: 1.15;
+        margin-top: 12px;
+      }
+
+      header p {
+        font-size: 15px;
+        line-height: 1.4;
+        padding: 0 6px;
+      }
+
+      header::before,
+      header::after {
+        font-size: 42px;
+        opacity: .08;
+      }
+
+      .top-actions {
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+      }
+
+      .top-action-btn {
+        width: 100%;
+        min-width: unset;
+        padding: 10px 8px;
+        font-size: 13px;
+      }
+
+      #adminBtnTop {
+        grid-column: span 2;
+      }
+
+      main {
+        padding: 10px;
+        margin-top: -12px;
+      }
+
+      .tabs {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 8px;
+      }
+
+      .tab-btn {
+        width: 100%;
+        padding: 11px 8px;
+        font-size: 12px;
+      }
+
+      .card {
+        padding: 14px;
+        border-radius: 18px;
+      }
+
+      .card h2 {
+        font-size: 20px;
+      }
+
+      .grid,
+      .profile-grid,
+      .bracket-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .profile-avatar {
+        width: 74px;
+        height: 74px;
+        font-size: 30px;
+      }
+
+      .profile-big-number {
+        font-size: 28px;
+      }
+
+      .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+      }
+
+      table {
+        font-size: 12px;
+        min-width: 720px;
+      }
+
+      th,
+      td {
+        padding: 8px 7px;
+      }
+
+      .score-input {
+        width: 44px;
+        padding: 8px 4px;
+      }
+
+      input,
+      select,
+      button.primary,
+      button.warning,
+      button.danger {
+        font-size: 14px;
+      }
+
+      #loginScreen {
+        padding: 14px;
+      }
+
+      #loginScreen > div {
+        padding: 24px 18px;
+        border-radius: 22px;
+      }
+    }
 
       .tabs {
         display: grid;
@@ -524,7 +705,7 @@
       <p id="loginError" style="color:#b42318;font-weight:700;margin-top:14px;display:none;">Usuario o contraseña incorrecta</p>
 
       <div style="margin-top:18px;color:#687386;font-size:14px;">
-        Usuario normal: solo escribí tu nombre en usuario
+        Usuario admin: dmcfarlane
       </div>
     </div>
   </div>
@@ -706,15 +887,34 @@
 
         <div class="profile-box">
           <div class="profile-grid">
-            <div class="profile-item">
-              <div>👤 Mi usuario</div>
+            <div class="profile-item profile-highlight">
+              <div class="profile-avatar" id="profileAvatar">👤</div>
+              <div class="profile-title">👤 Mi usuario</div>
+              <div class="profile-subtitle" id="profileWelcome">Bienvenido al Prode Mundial 2026</div>
               <input id="profileNameInput" placeholder="Escribí tu nombre" style="margin-top:10px">
               <button class="primary" onclick="saveProfileName()" style="margin-top:10px">Guardar usuario</button>
               <br><small class="muted" id="profileNameStatus">Sin usuario guardado</small>
             </div>
-            <div class="profile-item">🏆 Mis puntos<br><small class="muted" id="myPointsStatus">0 pts</small></div>
-            <div class="profile-item">⚽ Mis pronósticos<br><small class="muted">Próximamente</small></div>
-            <div class="profile-item">📱 Foto / Avatar<br><small class="muted">Próximamente</small></div>
+            <div class="profile-item">
+              <div class="profile-center">🏆 Mis puntos</div>
+              <div class="profile-big-number" id="myPointsStatus">0</div>
+              <div class="profile-subtitle">Puntos acumulados</div>
+            </div>
+            <div class="profile-item">
+              <div class="profile-center">⚽ Mis pronósticos</div>
+              <div class="profile-big-number" id="myPredictionsCount">0</div>
+              <div class="profile-subtitle">Pronósticos cargados</div>
+            </div>
+            <div class="profile-item">
+              <div class="profile-center">📱 Foto / Avatar</div>
+              <input id="profilePhotoInput" type="file" accept="image/*" onchange="saveProfilePhoto(event)" style="margin-top:10px">
+              <button class="danger" onclick="deleteProfilePhoto()" style="margin-top:10px">Quitar foto</button>
+              <div class="profile-subtitle" id="profilePhotoStatus">Sin foto cargada</div>
+            </div>
+            <div class="profile-item">
+              🚪 Cerrar sesión<br>
+              <button class="danger" onclick="logoutApp()" style="margin-top:10px">Salir</button>
+            </div>
           </div>
         </div>
       </div>
@@ -740,7 +940,8 @@
       predictionLock: 'lockPredictions2026',
       theme: 'theme2026',
       profileName: 'profileName2026',
-      adminSession: 'adminSession2026'
+      adminSession: 'adminSession2026',
+      profilePhoto: 'profilePhoto2026'
     };
 
     const defaultPlayers = [
@@ -874,17 +1075,30 @@
 
     let currentTheme = localStorage.getItem(STORAGE_KEYS.theme) || 'light';
     let currentProfileName = localStorage.getItem(STORAGE_KEYS.profileName) || '';
+    let currentProfilePhoto = localStorage.getItem(STORAGE_KEYS.profilePhoto) || '';
     let isAdmin = JSON.parse(localStorage.getItem(STORAGE_KEYS.adminSession) || 'false');
-    const ADMIN_USER = 'Admin';
+    const ADMIN_USER = 'dmcfarlane';
     const ADMIN_PASSWORD = 'ale2026';
 
     let isResultLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.resultLock) || 'false');
     let arePredictionsLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictionLock) || 'false');
 
+    function getInitials(name) {
+      return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map(word => word[0]?.toUpperCase() || '')
+        .join('');
+    }
+
     function applyProfile() {
       const profileNameInput = document.getElementById('profileNameInput');
       const profileNameStatus = document.getElementById('profileNameStatus');
       const myPointsStatus = document.getElementById('myPointsStatus');
+      const myPredictionsCount = document.getElementById('myPredictionsCount');
+      const profileAvatar = document.getElementById('profileAvatar');
+      const profileWelcome = document.getElementById('profileWelcome');
 
       if (profileNameInput) {
         profileNameInput.value = currentProfileName;
@@ -894,12 +1108,62 @@
         profileNameStatus.innerText = currentProfileName ? `Usuario guardado: ${currentProfileName}` : 'Sin usuario guardado';
       }
 
+      if (profileAvatar) {
+        if (currentProfilePhoto) {
+          profileAvatar.innerHTML = `<img src="${currentProfilePhoto}" alt="Foto de perfil">`;
+        } else {
+          profileAvatar.innerText = currentProfileName ? getInitials(currentProfileName) : '👤';
+        }
+      }
+
+      const profilePhotoStatus = document.getElementById('profilePhotoStatus');
+      if (profilePhotoStatus) {
+        profilePhotoStatus.innerText = currentProfilePhoto ? 'Foto cargada correctamente' : 'Sin foto cargada';
+      }
+
+      if (profileWelcome) {
+        profileWelcome.innerText = currentProfileName
+          ? `Hola ${currentProfileName}`
+          : 'Bienvenido al Prode Mundial 2026';
+      }
+
       if (myPointsStatus) {
         const points = currentProfileName
           ? predictions.filter(p => p.player === currentProfileName).reduce((sum, p) => sum + pointsFor(p), 0)
           : 0;
-        myPointsStatus.innerText = `${points} pts`;
+        myPointsStatus.innerText = points;
+
+        if (myPredictionsCount) {
+          const totalPredictions = predictions.filter(p => p.player === currentProfileName).length;
+          myPredictionsCount.innerText = totalPredictions;
+        }
       }
+    }
+
+    function saveProfilePhoto(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        alert('Elegí una imagen válida');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = function(loadEvent) {
+        currentProfilePhoto = loadEvent.target.result;
+        localStorage.setItem(STORAGE_KEYS.profilePhoto, currentProfilePhoto);
+        renderAll();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function deleteProfilePhoto() {
+      currentProfilePhoto = '';
+      localStorage.removeItem(STORAGE_KEYS.profilePhoto);
+      const input = document.getElementById('profilePhotoInput');
+      if (input) input.value = '';
+      renderAll();
     }
 
     function saveProfileName() {
@@ -1007,6 +1271,25 @@
         .map(group => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`)
         .join('');
       select.value = groups.includes(current) ? current : '';
+    }
+
+    function logoutApp() {
+      isAdmin = false;
+      currentProfileName = '';
+      localStorage.removeItem(STORAGE_KEYS.profileName);
+      localStorage.removeItem(STORAGE_KEYS.adminSession);
+
+      const loginUser = document.getElementById('loginUser');
+      const loginPassword = document.getElementById('loginPassword');
+      const loginError = document.getElementById('loginError');
+      const loginScreen = document.getElementById('loginScreen');
+
+      if (loginUser) loginUser.value = '';
+      if (loginPassword) loginPassword.value = '';
+      if (loginError) loginError.style.display = 'none';
+      if (loginScreen) loginScreen.style.display = 'flex';
+
+      renderAll();
     }
 
     function loginApp() {
@@ -1502,6 +1785,9 @@
       assertTest('boton admin superior existe', document.getElementById('adminBtnTop') !== null);
       assertTest('toggleTheme existe', typeof toggleTheme === 'function');
       assertTest('saveProfileName existe', typeof saveProfileName === 'function');
+      assertTest('logoutApp existe', typeof logoutApp === 'function');
+      assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
+      assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
       assertTest('usuario admin no distingue mayusculas', ADMIN_USER.toLowerCase() === 'admin');
       assertTest('escapeHtml bloquea simbolos peligrosos', escapeHtml('<script>') === '&lt;script&gt;');
