@@ -538,19 +538,21 @@
       }
 
       header {
-        padding: 128px 12px 40px;
+        padding: 86px 12px 34px;
       }
 
       header h1 {
-        font-size: 34px;
+        font-size: 30px;
         line-height: 1.15;
-        margin-top: 12px;
+        margin: 0 auto 10px;
+        max-width: 330px;
       }
 
       header p {
         font-size: 15px;
-        line-height: 1.4;
-        padding: 0 6px;
+        line-height: 1.35;
+        max-width: 340px;
+        margin: 0 auto;
       }
 
       header::before,
@@ -560,56 +562,91 @@
       }
 
       .top-actions {
-        top: 10px;
-        left: 10px;
-        right: 10px;
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        display: flex;
+        justify-content: flex-end;
         gap: 8px;
       }
 
       .top-action-btn {
-        width: 100%;
-        min-width: unset;
-        padding: 10px 8px;
-        font-size: 13px;
+        width: 46px;
+        height: 46px;
+        min-width: 46px;
+        padding: 0;
+        border-radius: 16px;
+        font-size: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
       }
 
-      #adminBtnTop {
-        grid-column: span 2;
+      #themeHeaderBtn::before {
+        content: "🌙";
+        font-size: 22px;
+      }
+
+      body.dark-theme #themeHeaderBtn::before {
+        content: "☀️";
+      }
+
+      #profileBtn::before {
+        content: "👤";
+        font-size: 22px;
+      }
+
+      #adminBtnTop::before {
+        content: "👑";
+        font-size: 22px;
       }
 
       main {
         padding: 10px;
-        margin-top: -12px;
+        margin-top: -18px;
       }
 
       .tabs {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 8px;
-        padding: 8px;
+        padding: 10px;
+        border-radius: 22px;
+        margin-bottom: 16px;
       }
 
       .tab-btn {
         width: 100%;
-        padding: 11px 8px;
-        font-size: 12px;
+        min-width: 0;
+        padding: 12px 8px;
+        font-size: 13px;
+        text-align: center;
+        border-radius: 16px;
+      }
+
+      .tab-btn::before,
+      .tab-btn::after {
+        content: none !important;
       }
 
       .card {
-        padding: 14px;
-        border-radius: 18px;
+        padding: 15px;
+        border-radius: 20px;
       }
 
       .card h2 {
-        font-size: 20px;
+        font-size: 22px;
       }
 
       .grid,
       .profile-grid,
       .bracket-grid {
         grid-template-columns: 1fr;
+      }
+
+      .profile-box {
+        padding: 10px;
+        border-radius: 20px;
       }
 
       .profile-avatar {
@@ -619,7 +656,7 @@
       }
 
       .profile-big-number {
-        font-size: 28px;
+        font-size: 30px;
       }
 
       .table-wrap {
@@ -658,35 +695,6 @@
         padding: 24px 18px;
         border-radius: 22px;
       }
-    }
-
-      .tabs {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .tab-btn {
-        padding: 11px 10px;
-        font-size: 13px;
-      }
-
-      .card {
-        padding: 15px;
-        border-radius: 18px;
-      }
-
-      table {
-        font-size: 12px;
-        min-width: 760px;
-      }
-
-      th,
-      td {
-        padding: 9px 8px;
-      }
-
-      header { padding: 28px 12px 38px; }
-      .score-input { width: 48px; }
     }
   </style>
 </head>
