@@ -69,12 +69,13 @@
     }
 
     header {
-      background: linear-gradient(135deg, var(--primary-dark), var(--primary) 52%, var(--secondary));
+      background: linear-gradient(180deg, #06111f, #071827);
       color: white;
-      padding: 34px 16px 42px;
-      text-align: center;
+      padding: 18px 22px 22px;
+      text-align: left;
       position: relative;
       overflow: hidden;
+      border-bottom: 1px solid rgba(255,255,255,.08);
     }
 
     header::before {
@@ -88,7 +89,7 @@
     }
 
     header::after {
-      content: "🏆";
+      content: "⚽🌎";
       position: absolute;
       right: 9%;
       bottom: 8px;
@@ -212,22 +213,29 @@
     }
 
     header h1 {
-      margin: 0 0 10px;
-      font-size: clamp(28px, 5vw, 46px);
+      margin: 0 0 4px;
+      font-size: clamp(24px, 3vw, 34px);
       position: relative;
       z-index: 1;
+      letter-spacing: -.03em;
+      text-transform: uppercase;
+    }
+
+    header h1 span {
+      color: #22c55e;
     }
 
     header p {
       margin: 0;
-      opacity: .95;
+      opacity: .82;
       position: relative;
       z-index: 1;
+      font-weight: 700;
     }
 
     main {
       max-width: 1180px;
-      margin: -24px auto 0;
+      margin: -10px auto 0;
       padding: 18px;
       position: relative;
       z-index: 2;
@@ -237,6 +245,8 @@
       display: flex;
       gap: 10px;
       flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
       margin-bottom: 18px;
       background: var(--card);
       border: 1px solid var(--border);
@@ -532,13 +542,141 @@
       margin-right: 6px;
     }
 
+    .home-hero {
+      margin-bottom: 18px;
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: var(--shadow);
+      background: none;
+      min-height: auto;
+      padding: 0;
+    }
+
+    .hero-banner {
+      width: 100%;
+      display: block;
+      object-fit: cover;
+    }
+
+    .home-hero.hero-fallback {
+      min-height: 185px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      color: white;
+      background:
+        radial-gradient(circle at 24% 40%, rgba(255, 215, 0, .24), transparent 14%),
+        radial-gradient(circle at 78% 30%, rgba(56, 189, 248, .18), transparent 18%),
+        linear-gradient(135deg, #061328, #092b5f 48%, #013b2c);
+      position: relative;
+    }
+
+    .home-hero.hero-fallback::before {
+      content: "🏆";
+      font-size: 88px;
+      margin-right: 18px;
+      filter: drop-shadow(0 0 10px rgba(255,215,0,.40));
+    }
+
+    .home-hero.hero-fallback::after {
+      content: "PRODE\A MUNDIAL 2026\A Viví la pasión, acertá el resultado";
+      white-space: pre;
+      font-weight: 900;
+      font-size: clamp(22px, 4vw, 48px);
+      line-height: 1.05;
+      text-align: left;
+    }
+
+    
+
+    
+
+    
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+    }
+
+    .dashboard-card {
+      min-height: 230px;
+      border-radius: 22px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      text-align: center;
+      background: linear-gradient(180deg, var(--card), color-mix(in srgb, var(--soft) 65%, var(--card)));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      transition: transform .18s ease, box-shadow .18s ease;
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px rgba(0,0,0,.18);
+    }
+
+    .dashboard-icon {
+      width: 78px;
+      height: 78px;
+      margin: 0 auto 14px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-size: 36px;
+      background: var(--soft);
+      border: 1px solid var(--border);
+    }
+
+    .dashboard-card h3 {
+      margin: 0 0 8px;
+      font-size: 22px;
+    }
+
+    .dashboard-card p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .dashboard-card button {
+      margin-top: 18px;
+      width: 100%;
+    }
+
+    .card-blue { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); }
+    .card-green { border-color: color-mix(in srgb, var(--secondary) 55%, var(--border)); }
+    .card-purple { border-color: #7c3aed; }
+    .card-orange { border-color: #f59e0b; }
+    .card-red { border-color: #ef4444; }
+    .card-cyan { border-color: #06b6d4; }
+    .card-yellow { border-color: #eab308; }
+
+    .btn-blue { background: linear-gradient(135deg, #2563eb, #38bdf8) !important; }
+    .btn-purple { background: linear-gradient(135deg, #5b21b6, #8b5cf6) !important; }
+    .btn-orange { background: linear-gradient(135deg, #d97706, #f59e0b) !important; }
+    .btn-red { background: linear-gradient(135deg, #dc2626, #ef4444) !important; }
+    .btn-cyan { background: linear-gradient(135deg, #0891b2, #06b6d4) !important; }
+    .btn-yellow { background: linear-gradient(135deg, #ca8a04, #eab308) !important; }
+
+    @media (max-width: 980px) {
+      .dashboard-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
     @media (max-width: 720px) {
       body {
         overflow-x: hidden;
       }
 
       header {
-        padding: 86px 12px 34px;
+        padding: 82px 12px 32px;
+        text-align: center;
       }
 
       header h1 {
@@ -608,20 +746,20 @@
 
       .tabs {
         display: grid;
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 8px;
         padding: 10px;
-        border-radius: 22px;
+        border-radius: 20px;
         margin-bottom: 16px;
       }
 
       .tab-btn {
         width: 100%;
         min-width: 0;
-        padding: 12px 8px;
-        font-size: 13px;
+        padding: 11px 6px;
+        font-size: 12px;
         text-align: center;
-        border-radius: 16px;
+        border-radius: 15px;
       }
 
       .tab-btn::before,
@@ -724,13 +862,14 @@
       <button id="adminBtnTop" class="top-action-btn" onclick="toggleAdminMode()">👑 Admin</button>
     </div>
 
-    <h1>🏆 Prode Mundial 2026</h1>
-    <p>Fixture, pronósticos, resultados y ranking automático</p>
+    <h1>🏆 Prode Mundial <span>2026</span></h1>
+    <p>Tu pasión. Tu pronóstico. Tu Mundial.</p>
   </header>
 
   <main>
     <nav class="tabs" aria-label="Secciones del prode">
-      <button class="tab-btn active" onclick="showTab('fixture', this)">Fixture</button>
+      <button class="tab-btn active" onclick="showTab('inicio', this)">Inicio</button>
+      <button class="tab-btn" onclick="showTab('fixture', this)">Fixture</button>
       <button class="tab-btn" onclick="showTab('pronosticos', this)">Pronósticos</button>
       <button class="tab-btn" onclick="showTab('ranking', this)">Ranking</button>
       <button class="tab-btn" onclick="showTab('tablaGrupos', this)">Tabla de Grupos</button>
@@ -739,7 +878,87 @@
       <button class="tab-btn" onclick="showTab('reglas', this)">Reglas</button>
     </nav>
 
-    <section id="fixture" class="tab">
+    <section id="inicio" class="tab">
+      <div class="home-hero">
+        <img src="data:image/webp;base64,UklGRsxmAABXRUJQVlA4IMBmAACwLwqdASqwAL4APr1Mo06loyKhMAwAsBIJbACdLoB+AAcV6FSf8u+sTTgxYxcsx1bwbuzB18d2nOj0i7/H/p+X/ljHQAZA/A6NE6JzsvxZWGlUR7YInQM4Lzv64OTF1DzsdJYaWnXFPj9DYQLgB0Y/IfBJbTkrCpNMCS06xbK8wlETtXZOBsm/Z8XPzGUbg4fElV3b6Ax7a2CdNXw==" alt="Banner Mundial 2026" class="hero-banner">
+      </div>
+
+      <div class="dashboard-grid">
+        <div class="dashboard-card card-blue">
+          <div>
+            <div class="dashboard-icon">📅</div>
+            <h3>Fixture</h3>
+            <p>Calendario completo del Mundial 2026.</p>
+          </div>
+          <button class="primary btn-blue" onclick="showTab('fixture')">Ver Fixture ›</button>
+        </div>
+
+        <div class="dashboard-card card-green">
+          <div>
+            <div class="dashboard-icon">🎯</div>
+            <h3>Pronósticos</h3>
+            <p>Cargá tus resultados para cada partido.</p>
+          </div>
+          <button class="primary" onclick="showTab('pronosticos')">Hacer Pronósticos ›</button>
+        </div>
+
+        <div class="dashboard-card card-purple">
+          <div>
+            <div class="dashboard-icon">🏆</div>
+            <h3>Ranking</h3>
+            <p>Mirá la tabla de posiciones de jugadores.</p>
+          </div>
+          <button class="primary btn-purple" onclick="showTab('ranking')">Ver Ranking ›</button>
+        </div>
+
+        <div class="dashboard-card card-orange">
+          <div>
+            <div class="dashboard-icon">👥</div>
+            <h3>Tabla de Grupos</h3>
+            <p>Posiciones y resultados de cada grupo.</p>
+          </div>
+          <button class="primary btn-orange" onclick="showTab('tablaGrupos')">Ver Grupos ›</button>
+        </div>
+
+        <div class="dashboard-card card-red">
+          <div>
+            <div class="dashboard-icon">🥅</div>
+            <h3>Eliminatorias</h3>
+            <p>Seguimiento de las fases finales.</p>
+          </div>
+          <button class="primary btn-red" onclick="showTab('eliminatorias')">Ver Eliminatorias ›</button>
+        </div>
+
+        <div class="dashboard-card card-cyan">
+          <div>
+            <div class="dashboard-icon">📋</div>
+            <h3>Reglas</h3>
+            <p>Reglamento y sistema de puntuación.</p>
+          </div>
+          <button class="primary btn-cyan" onclick="showTab('reglas')">Ver Reglas ›</button>
+        </div>
+
+        <div class="dashboard-card card-yellow admin-only">
+          <div>
+            <div class="dashboard-icon">🧑‍🤝‍🧑</div>
+            <h3>Jugadores</h3>
+            <p>Lista de jugadores del Prode.</p>
+          </div>
+          <button class="primary btn-yellow" onclick="showTab('jugadores')">Ver Jugadores ›</button>
+        </div>
+
+        <div class="dashboard-card card-cyan admin-only">
+          <div>
+            <div class="dashboard-icon">⚙️</div>
+            <h3>Administración</h3>
+            <p>Gestionar resultados y datos del torneo.</p>
+          </div>
+          <button class="primary btn-cyan" onclick="showTab('jugadores')">Panel Admin ›</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="fixture" class="tab hidden">
       <div class="card">
         <h2>⚽ Fixture</h2>
         <p class="muted">Cargá el resultado real cuando termine cada partido. Los puntos se calculan solos.</p>
@@ -1380,6 +1599,7 @@
       const addPlayerBtn = document.getElementById('addPlayerBtn');
       const adminBtnTop = document.getElementById('adminBtnTop');
       const playersTabBtn = [...document.querySelectorAll('.tab-btn')].find(btn => btn.innerText.includes('Jugadores'));
+      const adminOnlyCards = document.querySelectorAll('.admin-only');
 
       if (addPlayerBtn) {
         addPlayerBtn.disabled = !isAdmin;
@@ -1394,6 +1614,10 @@
       if (playersTabBtn) {
         playersTabBtn.style.display = isAdmin ? 'inline-block' : 'none';
       }
+
+      adminOnlyCards.forEach(card => {
+        card.style.display = isAdmin ? 'flex' : 'none';
+      });
     }
 
     function renderSelectors() {
@@ -1797,7 +2021,8 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
-      assertTest('usuario admin no distingue mayusculas', ADMIN_USER.toLowerCase() === 'admin');
+      assertTest('usuario admin configurado correctamente', ADMIN_USER.toLowerCase() === 'dmcfarlane');
+      assertTest('pantalla inicio existe', document.getElementById('inicio') !== null);
       assertTest('escapeHtml bloquea simbolos peligrosos', escapeHtml('<script>') === '&lt;script&gt;');
       assertTest('export ranking tiene saltos seguros', buildRankingExportText().includes('\n\n'));
       assertTest('resultado exacto suma 3 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, testMatches) === 3);
