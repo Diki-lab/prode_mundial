@@ -559,34 +559,7 @@
       object-fit: cover;
     }
 
-    .home-hero.hero-fallback {
-      min-height: 185px;
-      display: grid;
-      place-items: center;
-      text-align: center;
-      color: white;
-      background:
-        radial-gradient(circle at 24% 40%, rgba(255, 215, 0, .24), transparent 14%),
-        radial-gradient(circle at 78% 30%, rgba(56, 189, 248, .18), transparent 18%),
-        linear-gradient(135deg, #061328, #092b5f 48%, #013b2c);
-      position: relative;
-    }
-
-    .home-hero.hero-fallback::before {
-      content: "🏆";
-      font-size: 88px;
-      margin-right: 18px;
-      filter: drop-shadow(0 0 10px rgba(255,215,0,.40));
-    }
-
-    .home-hero.hero-fallback::after {
-      content: "PRODE\A MUNDIAL 2026\A Viví la pasión, acertá el resultado";
-      white-space: pre;
-      font-weight: 900;
-      font-size: clamp(22px, 4vw, 48px);
-      line-height: 1.05;
-      text-align: left;
-    }
+    
 
     
 
@@ -880,7 +853,7 @@
 
     <section id="inicio" class="tab">
       <div class="home-hero">
-        <img src="data:image/webp;base64,UklGRsxmAABXRUJQVlA4IMBmAACwLwqdASqwAL4APr1Mo06loyKhMAwAsBIJbACdLoB+AAcV6FSf8u+sTTgxYxcsx1bwbuzB18d2nOj0i7/H/p+X/ljHQAZA/A6NE6JzsvxZWGlUR7YInQM4Lzv64OTF1DzsdJYaWnXFPj9DYQLgB0Y/IfBJbTkrCpNMCS06xbK8wlETtXZOBsm/Z8XPzGUbg4fElV3b6Ax7a2CdNXw==" alt="Banner Mundial 2026" class="hero-banner">
+        <img src="img/banner-mundial-2026.png" alt="Banner Mundial 2026" class="hero-banner">
       </div>
 
       <div class="dashboard-grid">
@@ -1157,6 +1130,24 @@
       </div>
     </section>
   </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDwxw1RRMscOdwGlACEklGS6RgDPKEondk",
+      authDomain: "prode-mundial-2026-5b2d9.firebaseapp.com",
+      projectId: "prode-mundial-2026-5b2d9",
+      storageBucket: "prode-mundial-2026-5b2d9.firebasestorage.app",
+      messagingSenderId: "153631005928",
+      appId: "1:153631005928:web:d6a98c9c5ea4578326bd5d",
+      measurementId: "G-2SK00ZRE76"
+    };
+
+    const app = initializeApp(firebaseConfig);
+
+    console.log("🔥 Firebase conectado correctamente");
+  </script>
 
   <script>
     const STORAGE_KEYS = {
