@@ -20,8 +20,8 @@
 - Probar registro, login y logout desde GitHub Pages.
 - Probar login con Google desde GitHub Pages.
 - Verificar que `prode/mundial2026` no pierda datos existentes.
-- Separar pronosticos por usuario para evitar pisado de datos.
-- Implementar roles admin reales en Firestore o Firebase custom claims.
+- Validar en produccion el guardado de pronosticos por usuario en `prode/mundial2026/predictions/{uid}`.
+- Implementar reglas Firestore o Firebase custom claims para proteger el rol admin.
 - Limitar escritura de resultados reales solo a administradores.
 
 ## Prioridad media
@@ -48,12 +48,12 @@
 - No confiar en checks de admin hechos solo en frontend.
 - Crear documento de roles, por ejemplo `roles/{uid}`, o usar custom claims.
 - Usar reglas Firestore para que solo admins reales escriban resultados y bloqueos.
-- Reestructurar Firestore para que cada usuario escriba solo sus propios pronosticos.
+- Reforzar con reglas Firestore que cada usuario escriba solo sus propios pronosticos.
 - Validar en reglas que un usuario no pueda modificar pronosticos ajenos.
 - Bloquear escritura de resultados para usuarios no admin.
 - Bloquear eliminacion de documentos criticos.
 - Evitar exponer informacion sensible en el cliente.
-- Agregar backups manuales o exportaciones antes de cambios grandes.
+- Usar Git como respaldo principal antes de cambios grandes.
 
 ## Mejoras de diseno mobile
 
@@ -94,6 +94,68 @@
 - Agregar exportacion en CSV.
 - Agregar filtros por usuario.
 - Mejorar presentacion visual de posiciones.
+
+## Estado actualizado - 27 de mayo de 2026
+
+### Completado de forma incremental
+
+- Guardado de pronosticos por usuario autenticado en `prode/mundial2026/predictions/{uid}`.
+- Carga de pronosticos propios al iniciar sesion.
+- Ranking compatible con la nueva subcoleccion y con el array historico `prode/mundial2026.predictions`.
+- Rol admin funcional por email oficial.
+- Funcion frontend `isCurrentUserAdmin()`.
+- Visualizacion de rol actual en la UI.
+- Mensaje especifico para `auth/unauthorized-domain` en Google Login.
+- Documentacion de dominios autorizados para Google Login.
+
+### Admin oficial
+
+```text
+davidalejandro.mcfarlane@gmail.com
+```
+
+Ese usuario debe quedar como:
+
+- `role: "admin"`
+- `isAdmin: true`
+
+Todos los demas usuarios:
+
+- `role: "user"`
+- `isAdmin: false`
+
+### Configuracion pendiente en Firebase Console
+
+Habilitar Google Provider:
+
+```text
+Authentication -> Sign-in method -> Google
+```
+
+Autorizar dominios:
+
+```text
+Authentication -> Settings -> Authorized domains
+```
+
+Agregar:
+
+- `diki-lab.github.io`
+- `localhost`
+
+### Pendiente para seguridad real
+
+El rol admin todavia es funcional en frontend. Falta reforzarlo con reglas Firestore o custom claims.
+
+Reglas futuras recomendadas:
+
+- Usuarios autenticados pueden leer datos del torneo.
+- Cada usuario solo puede escribir `prode/mundial2026/predictions/{uid}` si `{uid}` coincide con `request.auth.uid`.
+- Solo admins reales pueden escribir resultados, bloqueos y datos generales del torneo.
+
+### Pendiente para admin/ranking
+
+La vista admin muestra pronosticos consolidados en modo solo lectura. Queda pendiente una pantalla admin dedicada para revisar, filtrar o corregir pronosticos por usuario sin riesgo de pisar documentos ajenos.
 
 ## Ideas futuras
 

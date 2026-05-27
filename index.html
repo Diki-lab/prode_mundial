@@ -1033,6 +1033,7 @@
       <div class="header-user-info">
         <div class="header-user-name" id="headerUserName">Usuario</div>
         <div class="auth-user-email" id="headerUserEmail"></div>
+        <div class="auth-user-email" id="headerUserRole">Rol: user</div>
         <div class="header-user-points" id="headerUserPoints">0 pts</div>
       </div>
       <div class="top-actions">
@@ -1159,7 +1160,6 @@
           </div>
         </div>
       </div>
-
       <div class="card table-wrap">
         <table>
           <thead>
@@ -1340,7 +1340,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
     import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
-    import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, setDoc, getDocs, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDwxw1RRMscOdwGlACEklGS6RgDPKEondk",
@@ -1357,23 +1357,38 @@
     const googleProvider = new GoogleAuthProvider();
     const db = getFirestore(app);
     const prodeDocRef = doc(db, "prode", "mundial2026");
+    const predictionsCollectionRef = collection(db, "prode", "mundial2026", "predictions");
+    const OFFICIAL_ADMIN_EMAIL = "davidalejandro.mcfarlane@gmail.com";
+
+    function getUserRole(user) {
+      return (user?.email || "").toLowerCase() === OFFICIAL_ADMIN_EMAIL ? "admin" : "user";
+    }
 
     async function saveUserProfile(user) {
       if (!user) return;
       const providerIds = user.providerData.map(provider => provider.providerId);
       const emailUser = (user.email || "").split("@")[0].toLowerCase();
       const displayName = user.displayName || emailUser || "";
-      const isAdmin = displayName.toLowerCase() === "dmcfarlane" || emailUser === "dmcfarlane";
-
-      await setDoc(doc(db, "users", user.uid), {
+      const role = getUserRole(user);
+      const isAdmin = role === "admin";
+      const userRef = doc(db, "users", user.uid);
+      const currentProfile = await getDoc(userRef);
+      const profileData = {
         uid: user.uid,
         displayName,
         email: user.email || "",
+        role,
         providers: providerIds,
         isAdmin,
         lastLoginAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      }, { merge: true });
+      };
+
+      if (!currentProfile.exists() || !currentProfile.data()?.createdAt) {
+        profileData.createdAt = serverTimestamp();
+      }
+
+      await setDoc(userRef, profileData, { merge: true });
     }
 
     window.prodeFirebase = {
@@ -1387,6 +1402,32 @@
           ...data,
           updatedAt: new Date().toISOString()
         }, { merge: true });
+      },
+      async loadUserPredictions(uid) {
+        const snapshot = await getDoc(doc(db, "prode", "mundial2026", "predictions", uid));
+        return snapshot.exists() ? snapshot.data() : null;
+      },
+      async saveUserPredictions(user, predictions) {
+        const displayName = user.displayName || (user.email ? user.email.split("@")[0] : "");
+        const predictionRef = doc(db, "prode", "mundial2026", "predictions", user.uid);
+        const currentPredictions = await getDoc(predictionRef);
+        const predictionData = {
+          uid: user.uid,
+          displayName,
+          email: user.email || "",
+          predictions,
+          updatedAt: serverTimestamp()
+        };
+
+        if (!currentPredictions.exists() || !currentPredictions.data()?.createdAt) {
+          predictionData.createdAt = serverTimestamp();
+        }
+
+        await setDoc(predictionRef, predictionData, { merge: true });
+      },
+      async loadAllPredictions() {
+        const snapshot = await getDocs(predictionsCollectionRef);
+        return snapshot.docs.map(item => item.data());
       },
       async register({ displayName, email, password }) {
         const credential = await createUserWithEmailAndPassword(auth, email, password);
@@ -1599,7 +1640,9 @@
     let isAuthReady = false;
     let isRegisterMode = false;
     let isAdmin = false;
-    const ADMIN_USER = 'dmcfarlane';
+    const OFFICIAL_ADMIN_EMAIL = 'davidalejandro.mcfarlane@gmail.com';
+    let rankingPredictions = [];
+    let legacyRankingPredictions = [];
 
     let isResultLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.resultLock) || 'false');
     let arePredictionsLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictionLock) || 'false');
@@ -1623,9 +1666,15 @@
 
     function isFirebaseAdmin(user) {
       if (!user) return false;
-      const displayName = getFirebaseDisplayName(user).toLowerCase();
-      const emailUser = (user.email || '').split('@')[0].toLowerCase();
-      return displayName === ADMIN_USER.toLowerCase() || emailUser === ADMIN_USER.toLowerCase();
+      return (user.email || '').toLowerCase() === OFFICIAL_ADMIN_EMAIL;
+    }
+
+    function getCurrentUserRole() {
+      return isCurrentUserAdmin() ? 'admin' : 'user';
+    }
+
+    function isCurrentUserAdmin() {
+      return isFirebaseAdmin(currentFirebaseUser);
     }
 
     function isAuthenticated() {
@@ -1639,8 +1688,72 @@
       return false;
     }
 
+    function normalizePrediction(prediction, fallbackPlayer = '') {
+      if (!prediction) return null;
+      const matchId = Number(prediction.matchId);
+      const home = Number(prediction.home);
+      const away = Number(prediction.away);
+      const player = prediction.player || fallbackPlayer;
+
+      if (!player || Number.isNaN(matchId) || Number.isNaN(home) || Number.isNaN(away)) return null;
+      return { player, matchId, home, away };
+    }
+
+    function normalizePredictionList(list, fallbackPlayer = '') {
+      if (!Array.isArray(list)) return [];
+      return list
+        .map(item => normalizePrediction(item, fallbackPlayer))
+        .filter(Boolean);
+    }
+
+    function getCurrentUserLabel() {
+      return currentProfileName || currentFirebaseUser?.email || 'usuario';
+    }
+
+    function setPredictionStatus(message, isError = false) {
+      let status = document.getElementById('predictionSaveStatus');
+      const button = document.getElementById('savePredictionBtn');
+
+      if (!status && button?.parentElement?.parentElement) {
+        status = document.createElement('p');
+        status.id = 'predictionSaveStatus';
+        status.className = 'muted';
+        button.parentElement.parentElement.after(status);
+      }
+
+      if (status) {
+        status.innerText = message || '';
+        status.style.color = isError ? 'var(--danger-text)' : 'var(--muted)';
+      }
+    }
+
+    function updatePredictionUserStatus() {
+      let status = document.getElementById('predictionUserStatus');
+      const button = document.getElementById('savePredictionBtn');
+
+      if (!status && button?.parentElement?.parentElement) {
+        status = document.createElement('p');
+        status.id = 'predictionUserStatus';
+        status.className = 'muted';
+        button.parentElement.parentElement.after(status);
+      }
+
+      if (status) {
+        status.innerText = currentFirebaseUser
+          ? `Pronosticos cargados para: ${getCurrentUserLabel()} (${getCurrentUserRole()})`
+          : 'Inicia sesion para cargar tus pronosticos.';
+      }
+    }
+
     function getAuthErrorMessage(error) {
       const code = error?.code || '';
+      if (code === 'auth/unauthorized-domain') {
+        console.warn(
+          'Google Login bloqueado: el dominio actual no esta autorizado en Firebase Authentication.',
+          'Agrega diki-lab.github.io y localhost en Firebase Console > Authentication > Settings > Authorized domains.',
+          error
+        );
+      }
       const messages = {
         'auth/email-already-in-use': 'Ese email ya tiene una cuenta. Probá iniciar sesión.',
         'auth/invalid-email': 'El email no tiene un formato válido.',
@@ -1698,6 +1811,9 @@
       if (currentFirebaseUser) {
         currentProfileName = getFirebaseDisplayName(currentFirebaseUser);
         localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
+        predictions = [];
+        rankingPredictions = [];
+        localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
         clearAuthError();
         setAuthLoading(false);
 
@@ -1772,6 +1888,7 @@
       const headerUserAvatar = document.getElementById('headerUserAvatar');
       const headerUserName = document.getElementById('headerUserName');
       const headerUserEmail = document.getElementById('headerUserEmail');
+      const headerUserRole = document.getElementById('headerUserRole');
       const headerUserPoints = document.getElementById('headerUserPoints');
       const profileEmailStatus = document.getElementById('profileEmailStatus');
 
@@ -1805,6 +1922,10 @@
 
       if (headerUserEmail) {
         headerUserEmail.innerText = currentFirebaseUser?.email || '';
+      }
+
+      if (headerUserRole) {
+        headerUserRole.innerText = `Rol: ${getCurrentUserRole()}`;
       }
 
       if (profileEmailStatus) {
@@ -1891,7 +2012,7 @@
         }
       }
 
-      saveAll();
+      saveSharedData();
       renderAll();
       alert('Usuario guardado correctamente');
     }
@@ -1925,6 +2046,19 @@
       saveCloudData();
     }
 
+    function saveSharedData() {
+      if (!isAuthenticated()) {
+        console.warn('Guardado de datos generales bloqueado: no hay usuario autenticado');
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEYS.resultLock, JSON.stringify(isResultLocked));
+      localStorage.setItem(STORAGE_KEYS.predictionLock, JSON.stringify(arePredictionsLocked));
+      localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(players));
+      localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+      saveCloudData();
+    }
+
     async function loadCloudData() {
       if (!window.prodeFirebase || firebaseLoading || !currentFirebaseUser) return;
 
@@ -1935,11 +2069,30 @@
         if (cloudData) {
           if (Array.isArray(cloudData.players)) players = cloudData.players;
           if (Array.isArray(cloudData.matches)) matches = cloudData.matches;
-          if (Array.isArray(cloudData.predictions)) predictions = cloudData.predictions;
+          const legacyPredictions = normalizePredictionList(cloudData.predictions);
+          legacyRankingPredictions = legacyPredictions;
           if (typeof cloudData.isResultLocked === 'boolean') isResultLocked = cloudData.isResultLocked;
           if (typeof cloudData.arePredictionsLocked === 'boolean') arePredictionsLocked = cloudData.arePredictionsLocked;
           const addedCurrentPlayer = currentProfileName && !players.includes(currentProfileName);
           if (addedCurrentPlayer) players.push(currentProfileName);
+
+          console.log(`Cargando pronosticos del usuario: ${currentProfileName || currentFirebaseUser.email}`);
+          const userPredictionDoc = await window.prodeFirebase.loadUserPredictions(currentFirebaseUser.uid);
+          predictions = normalizePredictionList(userPredictionDoc?.predictions, currentProfileName);
+          if (!predictions.length && currentProfileName) {
+            predictions = legacyPredictions.filter(prediction => prediction.player === currentProfileName);
+          }
+
+          try {
+            const predictionDocs = await window.prodeFirebase.loadAllPredictions();
+            rankingPredictions = [
+              ...legacyPredictions,
+              ...predictionDocs.flatMap(item => normalizePredictionList(item.predictions, item.displayName || item.email))
+            ];
+          } catch (error) {
+            rankingPredictions = [...legacyPredictions, ...predictions];
+            console.warn(getFirestoreErrorMessage(error, 'cargar ranking'), error);
+          }
 
           localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(players));
           localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
@@ -1950,7 +2103,6 @@
             await window.prodeFirebase.saveData({
               players,
               matches,
-              predictions,
               isResultLocked,
               arePredictionsLocked
             });
@@ -1961,10 +2113,10 @@
           await window.prodeFirebase.saveData({
             players,
             matches,
-            predictions,
             isResultLocked,
             arePredictionsLocked
           });
+          rankingPredictions = [...predictions];
           console.log('☁️ Firestore inicializado con datos locales: prode/mundial2026');
         }
         renderAll();
@@ -1983,13 +2135,57 @@
         await window.prodeFirebase.saveData({
           players,
           matches,
-          predictions,
           isResultLocked,
           arePredictionsLocked
         });
         console.log('☁️ Datos guardados en Firestore: prode/mundial2026');
       } catch (error) {
         console.warn(getFirestoreErrorMessage(error, 'guardar datos'), error);
+      }
+    }
+
+    async function saveCurrentUserPredictions() {
+      if (!requireAuth('guardar pronosticos')) return false;
+      if (!window.prodeFirebase || !currentFirebaseUser) return false;
+
+      const saveButton = document.getElementById('savePredictionBtn');
+      if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.innerText = 'Guardando...';
+      }
+      setPredictionStatus(`Guardando pronosticos para: ${getCurrentUserLabel()}`);
+
+      try {
+        const userPredictions = normalizePredictionList(predictions, currentProfileName);
+        await window.prodeFirebase.saveUserPredictions(currentFirebaseUser, userPredictions);
+        predictions = userPredictions;
+
+        try {
+          const predictionDocs = await window.prodeFirebase.loadAllPredictions();
+          rankingPredictions = [
+            ...legacyRankingPredictions,
+            ...predictionDocs.flatMap(item => normalizePredictionList(item.predictions, item.displayName || item.email))
+          ];
+        } catch (error) {
+          rankingPredictions = [...legacyRankingPredictions, ...predictions];
+          console.warn(getFirestoreErrorMessage(error, 'actualizar ranking'), error);
+        }
+        if (!rankingPredictions.length) rankingPredictions = [...predictions];
+
+        localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
+        setPredictionStatus(`Pronosticos guardados para: ${getCurrentUserLabel()}`);
+        console.log(`Pronosticos guardados en prode/mundial2026/predictions/${currentFirebaseUser.uid}`);
+        return true;
+      } catch (error) {
+        const message = getFirestoreErrorMessage(error, 'guardar pronosticos');
+        console.warn(message, error);
+        setPredictionStatus(message, true);
+        return false;
+      } finally {
+        if (saveButton) {
+          saveButton.disabled = false;
+          saveButton.innerText = 'Guardar pronostico';
+        }
       }
     }
 
@@ -2144,16 +2340,16 @@
         await window.prodeFirebase.loginWithGoogle();
       } catch (error) {
         console.warn('No se pudo iniciar sesión con Google:', error);
-        showAuthError(getAuthErrorMessage(error));
+        showAuthError(error?.code === 'auth/unauthorized-domain'
+          ? 'Este dominio no esta autorizado para ingresar con Google. Agrega diki-lab.github.io y localhost en Firebase Console > Authentication > Settings > Authorized domains.'
+          : getAuthErrorMessage(error));
         setAuthLoading(false);
       }
     }
 
     function toggleAdminMode() {
       if (!isAdmin) return;
-
-      isAdmin = false;
-      alert('Modo administrador desactivado');
+      alert(`Admin activo: ${OFFICIAL_ADMIN_EMAIL}`);
       renderAll();
     }
 
@@ -2190,7 +2386,7 @@
       if (!match || !['homeGoals', 'awayGoals'].includes(field)) return;
 
       match[field] = value === '' ? '' : Number(value);
-      saveAll();
+      saveSharedData();
       renderAll();
     }
 
@@ -2220,7 +2416,7 @@
     }
 
     function renderSelectors() {
-      const selectablePlayers = isAdmin || !currentProfileName ? players : [currentProfileName];
+      const selectablePlayers = currentProfileName ? [currentProfileName] : players;
 
       document.getElementById('playerSelect').innerHTML = selectablePlayers
         .map(player => `<option value="${escapeHtml(player)}">${escapeHtml(player)}</option>`)
@@ -2231,9 +2427,9 @@
         .join('');
     }
 
-    function savePrediction() {
+    async function savePrediction() {
       if (!requireAuth('guardar pronóstico')) return;
-      const player = document.getElementById('playerSelect').value;
+      const player = currentProfileName;
       const matchId = Number(document.getElementById('matchSelect').value);
       const home = Number(document.getElementById('predHome').value);
       const away = Number(document.getElementById('predAway').value);
@@ -2248,7 +2444,9 @@
         predictions.push({ player, matchId, home, away });
       }
 
-      saveAll();
+      localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
+      const saved = await saveCurrentUserPredictions();
+      if (!saved) return;
       renderAll();
     }
 
@@ -2264,7 +2462,8 @@
     }
 
     function renderPredictions() {
-      document.getElementById('predictionsBody').innerHTML = predictions.map((prediction, index) => {
+      const visiblePredictions = isAdmin ? rankingPredictions : predictions;
+      document.getElementById('predictionsBody').innerHTML = visiblePredictions.map((prediction, index) => {
         const match = matches.find(item => item.id === prediction.matchId);
         const matchName = match ? `${match.home} vs ${match.away}` : 'Partido eliminado';
 
@@ -2274,7 +2473,7 @@
             <td>#${prediction.matchId} ${escapeHtml(matchName)}</td>
             <td>${prediction.home} - ${prediction.away}</td>
             <td><span class="points-badge">${pointsFor(prediction)}</span></td>
-            <td>${isAdmin ? `<button class="danger" onclick="deletePrediction(${index})">Borrar</button>` : ''}</td>
+            <td>${isAdmin ? 'Solo lectura' : ''}</td>
           </tr>
         `;
       }).join('');
@@ -2289,10 +2488,16 @@
     }
 
     function getRankingTotals() {
-      return players
+      const sourcePredictions = rankingPredictions.length ? rankingPredictions : predictions;
+      const rankingPlayers = [...new Set([
+        ...players,
+        ...sourcePredictions.map(prediction => prediction.player).filter(Boolean)
+      ])];
+
+      return rankingPlayers
         .map(player => ({
           player,
-          points: predictions
+          points: sourcePredictions
             .filter(prediction => prediction.player === player)
             .reduce((sum, prediction) => sum + pointsFor(prediction), 0)
         }))
@@ -2579,6 +2784,7 @@
 
       applyTheme();
       applyProfile();
+      updatePredictionUserStatus();
       updateAdminUI();
       renderFixture();
       renderSelectors();
@@ -2634,7 +2840,7 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
-      assertTest('usuario admin configurado correctamente', ADMIN_USER.toLowerCase() === 'dmcfarlane');
+      assertTest('usuario admin configurado correctamente', OFFICIAL_ADMIN_EMAIL === 'davidalejandro.mcfarlane@gmail.com');
       assertTest('pantalla inicio existe', document.getElementById('inicio') !== null);
       assertTest('saveCloudData existe', typeof saveCloudData === 'function');
       assertTest('loadCloudData existe', typeof loadCloudData === 'function');

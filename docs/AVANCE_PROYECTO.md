@@ -139,3 +139,138 @@ El login con Google:
 - Confirmar que `prode/mundial2026` conserva datos existentes.
 - Separar datos por usuario en Firestore para evitar pisado de datos.
 - Definir un sistema de admin seguro, idealmente con custom claims o un documento de roles.
+
+## Actualizacion 27 de mayo de 2026 - pronosticos por usuario y roles
+
+Se adapto `index.html` para mantener la app como HTML/CSS/JS puro compatible con GitHub Pages, sin PWA y sin framework.
+
+### Nueva estructura Firestore usada
+
+Datos generales compartidos:
+
+```text
+prode/mundial2026
+```
+
+Debe contener datos compartidos del torneo:
+
+- `players`
+- `matches`
+- `isResultLocked`
+- `arePredictionsLocked`
+- `updatedAt`
+
+Pronosticos por usuario autenticado:
+
+```text
+prode/mundial2026/predictions/{uid}
+```
+
+Cada documento incluye:
+
+- `uid`
+- `displayName`
+- `email`
+- `predictions`
+- `createdAt`
+- `updatedAt`
+
+Usuarios:
+
+```text
+users/{uid}
+```
+
+Cada documento incluye:
+
+- `uid`
+- `displayName`
+- `email`
+- `role`
+- `isAdmin`
+- `providers`
+- `createdAt`
+- `updatedAt`
+- `lastLoginAt`
+
+### Roles
+
+El admin oficial es:
+
+```text
+davidalejandro.mcfarlane@gmail.com
+```
+
+Ese email queda con:
+
+- `role: "admin"`
+- `isAdmin: true`
+
+Todo otro usuario queda con:
+
+- `role: "user"`
+- `isAdmin: false`
+
+La UI usa `isCurrentUserAdmin()` para mostrar u ocultar controles admin. Esta proteccion es funcional en frontend, pero no reemplaza reglas Firestore ni custom claims.
+
+### Pronosticos
+
+Al iniciar sesion se cargan:
+
+1. Datos generales desde `prode/mundial2026`.
+2. Pronosticos del usuario actual desde `prode/mundial2026/predictions/{uid}`.
+3. Pronosticos de todos los usuarios para ranking desde la subcoleccion `predictions`.
+
+Si un usuario todavia no tiene documento de pronosticos, la app inicia con pronosticos vacios. Para compatibilidad, si existen pronosticos historicos en `prode/mundial2026.predictions`, se usan para ranking y como recuperacion inicial del usuario actual cuando coincide el nombre.
+
+Al guardar, la app guarda solo los pronosticos del usuario autenticado en `prode/mundial2026/predictions/{uid}` con `setDoc(..., { merge: true })`.
+
+### Ranking
+
+El ranking ahora intenta leer la subcoleccion:
+
+```text
+prode/mundial2026/predictions
+```
+
+Tambien mantiene compatibilidad con el array historico `prode/mundial2026.predictions`. La pantalla de ranking no se elimina ni cambia de estructura visual.
+
+La vista admin muestra los pronosticos consolidados en modo solo lectura para evitar borrar o pisar datos de otros usuarios desde una implementacion parcial.
+
+### Google Login
+
+Se agrego manejo especifico para:
+
+```text
+auth/unauthorized-domain
+```
+
+Si aparece ese error, hay que configurar dominios autorizados en Firebase Console:
+
+```text
+Authentication -> Settings -> Authorized domains
+```
+
+Dominios requeridos:
+
+- `diki-lab.github.io`
+- `localhost`
+
+Tambien debe estar habilitado el proveedor Google:
+
+```text
+Authentication -> Sign-in method -> Google
+```
+
+### Seguridad pendiente
+
+La seguridad real todavia debe reforzarse con reglas Firestore o custom claims. Recomendacion futura:
+
+- Permitir a usuarios autenticados leer datos generales.
+- Permitir que cada usuario escriba solo `prode/mundial2026/predictions/{uid}` donde `{uid}` sea su propio UID.
+- Permitir resultados, bloqueos y cambios administrativos solo a admins reales.
+- No confiar en `isAdmin` del frontend como unica barrera de seguridad.
+
+### Backups
+
+No se creo ningun backup nuevo de `index.html`. El respaldo principal es Git.

@@ -152,3 +152,104 @@ Los documentos `users/{uid}` incluyen datos basicos de sesion, proveedores de Au
 - No mover `index.html` fuera de la raiz si GitHub Pages publica desde root.
 - Evitar APIs que no funcionen en HTTPS publico o navegadores modernos.
 - Para Google Auth, confirmar que el dominio de GitHub Pages este autorizado en Firebase Authentication.
+
+## Estado actual actualizado - 27 de mayo de 2026
+
+La app sigue siendo una web estatica en `index.html`. No se convirtio en PWA, no se agrego framework y no se agrego build step.
+
+### Auth
+
+Firebase Auth funciona con:
+
+- Registro Email/Password.
+- Login Email/Password.
+- Login con Google por popup.
+- Logout.
+- `onAuthStateChanged` como fuente de verdad de sesion.
+
+El Prode se mantiene oculto si no hay sesion autenticada.
+
+### Firestore
+
+La estructura actual queda asi:
+
+```text
+users/{uid}
+prode/mundial2026
+prode/mundial2026/predictions/{uid}
+```
+
+`prode/mundial2026` queda para datos generales del torneo. Los pronosticos nuevos ya no deben guardarse como array global dentro de ese documento.
+
+`prode/mundial2026/predictions/{uid}` guarda los pronosticos del usuario autenticado:
+
+- `uid`
+- `displayName`
+- `email`
+- `predictions`
+- `createdAt`
+- `updatedAt`
+
+### Usuarios y roles
+
+`users/{uid}` se actualiza con:
+
+- `uid`
+- `displayName`
+- `email`
+- `role`
+- `isAdmin`
+- `providers`
+- `createdAt`
+- `updatedAt`
+- `lastLoginAt`
+
+Regla funcional de frontend:
+
+```text
+davidalejandro.mcfarlane@gmail.com -> admin
+otros usuarios registrados -> user
+```
+
+La funcion principal del frontend para admin es:
+
+```text
+isCurrentUserAdmin()
+```
+
+Advertencia: esto mejora la UX y la separacion funcional, pero no es seguridad fuerte. Para seguridad real hay que usar reglas Firestore o custom claims.
+
+### Ranking
+
+El ranking usa los pronosticos leidos desde la subcoleccion `prode/mundial2026/predictions`. Para no romper datos existentes, tambien contempla el array historico `prode/mundial2026.predictions` si todavia existe.
+
+### Google Login
+
+Para que Google Login funcione desde GitHub Pages, Firebase Authentication debe tener autorizados:
+
+- `diki-lab.github.io`
+- `localhost`
+
+Ruta:
+
+```text
+Firebase Console -> Authentication -> Settings -> Authorized domains
+```
+
+Tambien debe estar habilitado:
+
+```text
+Firebase Console -> Authentication -> Sign-in method -> Google
+```
+
+Si falta el dominio, Firebase devuelve:
+
+```text
+auth/unauthorized-domain
+```
+
+La UI muestra un mensaje especifico y la consola deja una explicacion con la ruta de configuracion.
+
+### Backups
+
+No crear mas archivos `index_backup_YYYYMMDD_HHMM.html`. El proyecto esta versionado en Git y Git debe usarse como respaldo principal.
