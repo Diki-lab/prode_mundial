@@ -69,54 +69,140 @@
     }
 
     header {
-      background: linear-gradient(180deg, #06111f, #071827);
+      background: linear-gradient(180deg, #020817 0%, #06111f 100%);
       color: white;
-      padding: 18px 22px 22px;
-      text-align: left;
+      padding: 18px 28px;
       position: relative;
       overflow: hidden;
       border-bottom: 1px solid rgba(255,255,255,.08);
+      min-height: 108px;
+      display: grid;
+      grid-template-columns: 320px 1fr 260px;
+      align-items: center;
+      gap: 18px;
+      box-shadow: 0 10px 35px rgba(0,0,0,.35);
     }
 
     header::before {
       content: "⚽";
       position: absolute;
-      left: 8%;
-      top: 18px;
-      font-size: 72px;
-      opacity: .12;
-      transform: rotate(-18deg);
+      left: 6%;
+      top: 10px;
+      font-size: 92px;
+      opacity: .08;
+      transform: rotate(-15deg);
     }
 
     header::after {
-      content: "⚽🌎";
+      content: "🌍";
       position: absolute;
-      right: 9%;
-      bottom: 8px;
-      font-size: 78px;
-      opacity: .14;
-      transform: rotate(12deg);
+      right: 8%;
+      top: 6px;
+      font-size: 88px;
+      opacity: .08;
     }
 
     .top-actions {
-      position: absolute;
-      top: 18px;
-      right: 18px;
       display: flex;
-      gap: 10px;
+      gap: 12px;
       z-index: 3;
+      align-items: center;
+      justify-content: flex-end;
+      position: relative;
+      top: auto;
+      right: auto;
+    }
+
+    .header-brand {
+      position: relative;
+      z-index: 2;
+    }
+
+    .header-nav {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 34px;
+      position: relative;
+      z-index: 2;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .header-nav button {
+      border: 0;
+      background: transparent;
+      color: rgba(255,255,255,.68);
+      cursor: pointer;
+      font-weight: 900;
+      font-size: 15px;
+      padding: 12px 8px;
+      border-bottom: 2px solid transparent;
+    }
+
+    .header-nav button:hover,
+    .header-nav button.active {
+      color: white;
+      border-bottom-color: #22c55e;
+    }
+
+    .header-user {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .header-user-avatar {
+      width: 62px;
+      height: 62px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #0d47a1, #22c55e);
+      border: 3px solid #22c55e;
+      color: white;
+      font-size: 26px;
+      font-weight: 900;
+      overflow: hidden;
+      box-shadow: 0 0 18px rgba(34,197,94,.30);
+    }
+
+    .header-user-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .header-user-info {
+      line-height: 1.2;
+    }
+
+    .header-user-name {
+      font-weight: 900;
+      font-size: 16px;
+    }
+
+    .header-user-points {
+      color: rgba(255,255,255,.78);
+      font-size: 14px;
+      margin-top: 4px;
     }
 
     .top-action-btn {
-      border: 1px solid rgba(255,255,255,.22);
-      background: rgba(255,255,255,.12);
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
       color: white;
-      padding: 10px 14px;
+      padding: 9px 14px;
       border-radius: 999px;
       cursor: pointer;
-      font-weight: 800;
+      font-weight: 900;
       backdrop-filter: blur(10px);
       transition: .2s ease;
+      box-shadow: 0 8px 18px rgba(0,0,0,.18);
+      white-space: nowrap;
     }
 
     .top-action-btn:hover {
@@ -214,11 +300,15 @@
 
     header h1 {
       margin: 0 0 4px;
-      font-size: clamp(24px, 3vw, 34px);
+      font-size: clamp(26px, 3.2vw, 38px);
       position: relative;
       z-index: 1;
-      letter-spacing: -.03em;
+      letter-spacing: -.04em;
       text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      line-height: 1;
     }
 
     header h1 span {
@@ -226,11 +316,24 @@
     }
 
     header p {
-      margin: 0;
-      opacity: .82;
+      margin: 6px 0 0 60px;
+      opacity: .84;
       position: relative;
       z-index: 1;
       font-weight: 700;
+      font-size: 15px;
+    }
+
+    .header-logo-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      font-size: 34px;
+      background: radial-gradient(circle at 35% 25%, rgba(255,255,255,.22), rgba(255,215,0,.10));
+      filter: drop-shadow(0 0 12px rgba(255,215,0,.35));
+      flex-shrink: 0;
     }
 
     main {
@@ -648,19 +751,43 @@
       }
 
       header {
-        padding: 82px 12px 32px;
+        padding: 82px 12px 28px;
+        text-align: center;
+        min-height: 150px;
+        display: block;
+      }
+
+      .header-nav,
+      .header-user-info,
+      .header-user-avatar {
+        display: none;
+      }
+
+      .header-brand {
         text-align: center;
       }
 
+      .header-user {
+        display: block;
+      }
+
       header h1 {
-        font-size: 30px;
+        font-size: 28px;
         line-height: 1.15;
         margin: 0 auto 10px;
-        max-width: 330px;
+        max-width: 340px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      .header-logo-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 28px;
       }
 
       header p {
-        font-size: 15px;
+        font-size: 14px;
         line-height: 1.35;
         max-width: 340px;
         margin: 0 auto;
@@ -829,14 +956,29 @@
     </div>
   </div>
   <header>
-    <div class="top-actions">
-      <button id="themeHeaderBtn" class="top-action-btn" onclick="toggleTheme()">🌙</button>
-      <button id="profileBtn" class="top-action-btn" onclick="showTab('perfil')">👤 Perfil</button>
-      <button id="adminBtnTop" class="top-action-btn" onclick="toggleAdminMode()">👑 Admin</button>
+    <div class="header-brand">
+      <img src="img/logo_titulo.png" alt="Prode Mundial 2026" style="max-width:100%;height:auto;max-height:85px;display:block;">
     </div>
 
-    <h1>🏆 Prode Mundial <span>2026</span></h1>
-    <p>Tu pasión. Tu pronóstico. Tu Mundial.</p>
+    <nav class="header-nav" aria-label="Accesos principales">
+      <button class="active" onclick="showTab('inicio')">⌂ Inicio</button>
+      <button onclick="showTab('perfil')">♙ Mi perfil</button>
+      <button onclick="showTab('ranking')">♕ Ranking</button>
+      <button onclick="showTab('jugadores')">♜ Admin</button>
+    </nav>
+
+    <div class="header-user">
+      <div class="header-user-avatar" id="headerUserAvatar">👤</div>
+      <div class="header-user-info">
+        <div class="header-user-name" id="headerUserName">Usuario</div>
+        <div class="header-user-points" id="headerUserPoints">0 pts</div>
+      </div>
+      <div class="top-actions">
+        <button id="themeHeaderBtn" class="top-action-btn" onclick="toggleTheme()">🌙</button>
+        <button id="profileBtn" class="top-action-btn" onclick="showTab('perfil')">👤 Perfil</button>
+        <button id="adminBtnTop" class="top-action-btn" onclick="toggleAdminMode()">👑 Admin</button>
+      </div>
+    </div>
   </header>
 
   <main>
@@ -1317,6 +1459,9 @@
       const myPredictionsCount = document.getElementById('myPredictionsCount');
       const profileAvatar = document.getElementById('profileAvatar');
       const profileWelcome = document.getElementById('profileWelcome');
+      const headerUserAvatar = document.getElementById('headerUserAvatar');
+      const headerUserName = document.getElementById('headerUserName');
+      const headerUserPoints = document.getElementById('headerUserPoints');
 
       if (profileNameInput) {
         profileNameInput.value = currentProfileName;
@@ -1332,6 +1477,18 @@
         } else {
           profileAvatar.innerText = currentProfileName ? getInitials(currentProfileName) : '👤';
         }
+      }
+
+      if (headerUserAvatar) {
+        if (currentProfilePhoto) {
+          headerUserAvatar.innerHTML = `<img src="${currentProfilePhoto}" alt="Foto de perfil">`;
+        } else {
+          headerUserAvatar.innerText = currentProfileName ? getInitials(currentProfileName) : '👤';
+        }
+      }
+
+      if (headerUserName) {
+        headerUserName.innerText = currentProfileName || 'Usuario';
       }
 
       const profilePhotoStatus = document.getElementById('profilePhotoStatus');
@@ -1350,6 +1507,10 @@
           ? predictions.filter(p => p.player === currentProfileName).reduce((sum, p) => sum + pointsFor(p), 0)
           : 0;
         myPointsStatus.innerText = points;
+
+        if (headerUserPoints) {
+          headerUserPoints.innerText = `${points} pts`;
+        }
 
         if (myPredictionsCount) {
           const totalPredictions = predictions.filter(p => p.player === currentProfileName).length;
