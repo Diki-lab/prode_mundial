@@ -1268,13 +1268,14 @@
         <p><span class="pill">3 puntos</span> Resultado exacto. Ejemplo: pronóstico 2-1 y termina 2-1.</p>
         <p><span class="pill">1 punto</span> Acierta ganador o empate. Ejemplo: pronóstico 2-1 y termina 1-0.</p>
         <p><span class="pill">0 puntos</span> No acierta el resultado.</p>
-        <p class="muted">Esta página guarda datos en el navegador usando localStorage.</p>
+        <p class="muted">Esta página guarda datos en el navegador y también en Firebase/Firestore cuando está conectado.</p>
       </div>
     </section>
   </main>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDwxw1RRMscOdwGlACEklGS6RgDPKEondk",
@@ -1287,8 +1288,24 @@
     };
 
     const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const prodeDocRef = doc(db, "prode", "mundial2026");
 
-    console.log("🔥 Firebase conectado correctamente");
+    window.prodeFirebase = {
+      async loadData() {
+        const snapshot = await getDoc(prodeDocRef);
+        return snapshot.exists() ? snapshot.data() : null;
+      },
+      async saveData(data) {
+        await setDoc(prodeDocRef, {
+          ...data,
+          updatedAt: new Date().toISOString()
+        }, { merge: true });
+      }
+    };
+
+    window.dispatchEvent(new Event("firebase-ready"));
+    console.log("🔥 Firebase + Firestore conectado correctamente");
   </script>
 
   <script>
@@ -1442,6 +1459,8 @@
 
     let isResultLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.resultLock) || 'false');
     let arePredictionsLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictionLock) || 'false');
+    let firebaseEnabled = false;
+    let firebaseLoading = false;
 
     function getInitials(name) {
       return name
@@ -1591,7 +1610,61 @@
       localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(players));
       localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
       localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
+      saveCloudData();
     }
+
+    async function loadCloudData() {
+      if (!window.prodeFirebase || firebaseLoading) return;
+
+      firebaseLoading = true;
+      try {
+        const cloudData = await window.prodeFirebase.loadData();
+        if (cloudData) {
+          if (Array.isArray(cloudData.players)) players = cloudData.players;
+          if (Array.isArray(cloudData.matches)) matches = cloudData.matches;
+          if (Array.isArray(cloudData.predictions)) predictions = cloudData.predictions;
+          if (typeof cloudData.isResultLocked === 'boolean') isResultLocked = cloudData.isResultLocked;
+          if (typeof cloudData.arePredictionsLocked === 'boolean') arePredictionsLocked = cloudData.arePredictionsLocked;
+
+          localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(players));
+          localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+          localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
+          localStorage.setItem(STORAGE_KEYS.resultLock, JSON.stringify(isResultLocked));
+          localStorage.setItem(STORAGE_KEYS.predictionLock, JSON.stringify(arePredictionsLocked));
+          console.log('☁️ Datos cargados desde Firestore');
+        } else {
+          await saveCloudData(true);
+          console.log('☁️ Firestore inicializado con datos locales');
+        }
+        renderAll();
+      } catch (error) {
+        console.warn('No se pudieron cargar datos desde Firestore:', error);
+      } finally {
+        firebaseLoading = false;
+      }
+    }
+
+    async function saveCloudData(force = false) {
+      if (!window.prodeFirebase || (!firebaseEnabled && !force) || firebaseLoading) return;
+
+      try {
+        await window.prodeFirebase.saveData({
+          players,
+          matches,
+          predictions,
+          isResultLocked,
+          arePredictionsLocked
+        });
+        console.log('☁️ Datos guardados en Firestore');
+      } catch (error) {
+        console.warn('No se pudieron guardar datos en Firestore:', error);
+      }
+    }
+
+    window.addEventListener('firebase-ready', () => {
+      firebaseEnabled = true;
+      loadCloudData();
+    });
 
     function escapeHtml(value) {
       return String(value)
@@ -2175,6 +2248,8 @@
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
       assertTest('usuario admin configurado correctamente', ADMIN_USER.toLowerCase() === 'dmcfarlane');
       assertTest('pantalla inicio existe', document.getElementById('inicio') !== null);
+      assertTest('saveCloudData existe', typeof saveCloudData === 'function');
+      assertTest('loadCloudData existe', typeof loadCloudData === 'function');
       assertTest('escapeHtml bloquea simbolos peligrosos', escapeHtml('<script>') === '&lt;script&gt;');
       assertTest('export ranking tiene saltos seguros', buildRankingExportText().includes('\n\n'));
       assertTest('resultado exacto suma 3 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, testMatches) === 3);
