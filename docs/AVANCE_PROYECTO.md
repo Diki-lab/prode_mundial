@@ -32,9 +32,12 @@ Actualmente el proyecto funciona principalmente desde `index.html`, con persiste
 - Se agrego Firebase Authentication.
 - Se reemplazo el login local hardcodeado por login con email y contrasena.
 - Se agrego registro de usuarios con nombre visible, email y contrasena.
+- Se agrego login con Google mediante popup, sujeto a que el proveedor Google este habilitado en Firebase Console.
 - Se agrego cierre de sesion con Firebase Auth.
 - Se agrego guardado basico de usuarios en Firestore, coleccion `users`.
 - Se oculto el Prode si no existe una sesion autenticada.
+- Se reforzaron guards de sesion para evitar acciones del Prode sin usuario autenticado.
+- Se mejoraron mensajes de error de Auth y logs de Firestore.
 
 ## Firebase Auth
 
@@ -45,11 +48,15 @@ Funciones usadas:
 - `getAuth(app)`
 - `createUserWithEmailAndPassword`
 - `signInWithEmailAndPassword`
+- `signInWithPopup`
+- `GoogleAuthProvider`
 - `updateProfile`
 - `onAuthStateChanged`
 - `signOut`
 
 El estado de sesion se controla con `onAuthStateChanged`. Si no hay usuario, se muestra solo la pantalla de acceso. Si hay usuario, se habilita la aplicacion.
+
+Tambien se agregaron guards de frontend para bloquear acciones sensibles si no existe usuario autenticado. Esto mejora la UX y evita cambios accidentales desde la interfaz, pero la seguridad real debe completarse con reglas de Firestore.
 
 ## Firestore
 
@@ -79,6 +86,9 @@ Cada usuario autenticado guarda datos basicos:
 - `uid`
 - `displayName`
 - `email`
+- `providers`
+- `isAdmin`
+- `lastLoginAt`
 - `updatedAt`
 
 ## Login y registro
@@ -98,10 +108,18 @@ Al registrar un usuario:
 3. Se guarda el usuario en Firestore en `users/{uid}`.
 4. El usuario entra al Prode si la autenticacion fue correcta.
 
+El login con Google:
+
+1. Abre un popup con `signInWithPopup`.
+2. Firebase completa la sesion si Google esta habilitado.
+3. Se guarda el usuario en `users/{uid}`.
+4. El usuario entra al Prode.
+
 ## Archivos tocados
 
 - `index.html`: integracion de Firebase Auth, login, registro, logout y guardado de usuarios.
 - `index_backup.html`: copia de seguridad previa a los cambios de Auth.
+- `index_backup_20260527_1651.html`: copia de seguridad previa a las mejoras de sesion, Google, Firestore y UX.
 - `docs/AVANCE_PROYECTO.md`: documentacion del avance actual.
 - `docs/MEMORIA_PROYECTO.md`: memoria tecnica del proyecto.
 - `docs/FUNCIONALIDADES_PENDIENTES.md`: backlog funcional y tecnico.
@@ -113,9 +131,11 @@ Al registrar un usuario:
 ## Proximos pasos inmediatos
 
 - Activar Email/Password en Firebase Authentication.
+- Activar Google en Firebase Authentication si se quiere usar ese acceso.
 - Revisar y publicar reglas de Firestore seguras.
 - Probar registro real desde GitHub Pages.
 - Probar login real desde GitHub Pages.
+- Probar login con Google desde GitHub Pages y confirmar dominio autorizado.
 - Confirmar que `prode/mundial2026` conserva datos existentes.
 - Separar datos por usuario en Firestore para evitar pisado de datos.
 - Definir un sistema de admin seguro, idealmente con custom claims o un documento de roles.

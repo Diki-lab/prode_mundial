@@ -216,50 +216,6 @@
       color: #fff8d6;
     }
 
-    .auth-card {
-      width: 100%;
-      max-width: 420px;
-      background: white;
-      border-radius: 28px;
-      padding: 30px;
-      box-shadow: 0 20px 50px rgba(0,0,0,.28);
-      text-align: center;
-    }
-
-    .auth-actions {
-      display: grid;
-      gap: 10px;
-    }
-
-    .auth-google-btn {
-      width: 100%;
-      border: 1px solid #d7dee8;
-      background: #ffffff;
-      color: #172033;
-      padding: 13px 18px;
-      border-radius: 14px;
-      cursor: pointer;
-      font-weight: 900;
-      box-shadow: 0 8px 18px rgba(13, 71, 161, .10);
-    }
-
-    .auth-status {
-      color: #172033;
-      font-weight: 800;
-      margin-top: 14px;
-      display: none;
-    }
-
-    .auth-user-email {
-      color: rgba(255,255,255,.70);
-      font-size: 12px;
-      margin-top: 2px;
-      max-width: 170px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
     .profile-box {
       margin-top: 14px;
       padding: 14px;
@@ -977,23 +933,13 @@
         padding: 24px 18px;
         border-radius: 22px;
       }
-
-      .auth-card {
-        padding: 24px 18px;
-        border-radius: 22px;
-      }
-
-      #logoutHeaderBtn::before {
-        content: "Salir";
-        font-size: 12px;
-      }
     }
   </style>
 </head>
 
 <body>
   <div id="loginScreen" style="position:fixed;inset:0;background:linear-gradient(135deg,#082f6f,#0d47a1,#00a86b);display:flex;align-items:center;justify-content:center;z-index:9999;padding:20px;">
-    <div class="auth-card">
+    <div style="width:100%;max-width:420px;background:white;border-radius:28px;padding:30px;box-shadow:0 20px 50px rgba(0,0,0,.28);text-align:center;">
       <h1 style="margin-top:0;font-size:32px;">🏆 Prode Mundial 2026</h1>
       <p style="color:#687386;margin-bottom:25px;">Ingresá para continuar</p>
 
@@ -1001,15 +947,11 @@
       <input id="loginUser" type="email" placeholder="Email" style="margin-bottom:14px">
       <input id="loginPassword" type="password" placeholder="Contraseña" style="margin-bottom:18px">
 
-      <div class="auth-actions">
-        <button id="loginSubmitBtn" class="primary" style="width:100%;" onclick="loginApp()">Ingresar</button>
-        <button id="registerSubmitBtn" class="primary" style="width:100%;display:none" onclick="registerApp()">Crear cuenta</button>
-        <button id="googleLoginBtn" class="auth-google-btn" onclick="loginWithGoogle()">Ingresar con Google</button>
-        <button id="authModeBtn" class="warning" style="width:100%;" onclick="toggleAuthMode()">Registrarme</button>
-      </div>
+      <button id="loginSubmitBtn" class="primary" style="width:100%;" onclick="loginApp()">Ingresar</button>
+      <button id="registerSubmitBtn" class="primary" style="width:100%;display:none" onclick="registerApp()">Crear cuenta</button>
+      <button id="authModeBtn" class="warning" style="width:100%;margin-top:10px" onclick="toggleAuthMode()">Registrarme</button>
 
       <p id="loginError" style="color:#b42318;font-weight:700;margin-top:14px;display:none;">No se pudo iniciar sesión</p>
-      <p id="authStatus" class="auth-status">Conectando...</p>
 
       <div style="margin-top:18px;color:#687386;font-size:14px;">
         Acceso con Firebase Authentication
@@ -1032,7 +974,6 @@
       <div class="header-user-avatar" id="headerUserAvatar">👤</div>
       <div class="header-user-info">
         <div class="header-user-name" id="headerUserName">Usuario</div>
-        <div class="auth-user-email" id="headerUserEmail"></div>
         <div class="header-user-points" id="headerUserPoints">0 pts</div>
       </div>
       <div class="top-actions">
@@ -1296,7 +1237,6 @@
               <div class="profile-avatar" id="profileAvatar">👤</div>
               <div class="profile-title">👤 Mi usuario</div>
               <div class="profile-subtitle" id="profileWelcome">Bienvenido al Prode Mundial 2026</div>
-              <div class="profile-subtitle" id="profileEmailStatus"></div>
               <input id="profileNameInput" placeholder="Escribí tu nombre" style="margin-top:10px">
               <button class="primary" onclick="saveProfileName()" style="margin-top:10px">Guardar usuario</button>
               <br><small class="muted" id="profileNameStatus">Sin usuario guardado</small>
@@ -1339,7 +1279,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -1354,24 +1294,16 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const googleProvider = new GoogleAuthProvider();
     const db = getFirestore(app);
     const prodeDocRef = doc(db, "prode", "mundial2026");
 
     async function saveUserProfile(user) {
       if (!user) return;
-      const providerIds = user.providerData.map(provider => provider.providerId);
-      const emailUser = (user.email || "").split("@")[0].toLowerCase();
-      const displayName = user.displayName || emailUser || "";
-      const isAdmin = displayName.toLowerCase() === "dmcfarlane" || emailUser === "dmcfarlane";
 
       await setDoc(doc(db, "users", user.uid), {
         uid: user.uid,
-        displayName,
+        displayName: user.displayName || "",
         email: user.email || "",
-        providers: providerIds,
-        isAdmin,
-        lastLoginAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       }, { merge: true });
     }
@@ -1391,43 +1323,16 @@
       async register({ displayName, email, password }) {
         const credential = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(credential.user, { displayName });
-        try {
-          await saveUserProfile(credential.user);
-        } catch (error) {
-          console.warn("Usuario registrado, pero no se pudo guardar users/{uid}:", error);
-        }
+        await saveUserProfile(credential.user);
         return credential.user;
       },
       async login({ email, password }) {
         const credential = await signInWithEmailAndPassword(auth, email, password);
-        try {
-          await saveUserProfile(credential.user);
-        } catch (error) {
-          console.warn("Sesion iniciada, pero no se pudo guardar users/{uid}:", error);
-        }
-        return credential.user;
-      },
-      async loginWithGoogle() {
-        const credential = await signInWithPopup(auth, googleProvider);
-        try {
-          await saveUserProfile(credential.user);
-        } catch (error) {
-          console.warn("Sesion con Google iniciada, pero no se pudo guardar users/{uid}:", error);
-        }
+        await saveUserProfile(credential.user);
         return credential.user;
       },
       async logout() {
         await signOut(auth);
-      },
-      async updateDisplayName(displayName) {
-        if (!auth.currentUser) return null;
-        await updateProfile(auth.currentUser, { displayName });
-        try {
-          await saveUserProfile(auth.currentUser);
-        } catch (error) {
-          console.warn("Nombre actualizado, pero no se pudo guardar users/{uid}:", error);
-        }
-        return auth.currentUser;
       },
       async saveUserProfile(user) {
         await saveUserProfile(user);
@@ -1605,7 +1510,6 @@
     let arePredictionsLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictionLock) || 'false');
     let firebaseEnabled = false;
     let firebaseLoading = false;
-    let authActionLoading = false;
 
     function getInitials(name) {
       return name
@@ -1628,62 +1532,6 @@
       return displayName === ADMIN_USER.toLowerCase() || emailUser === ADMIN_USER.toLowerCase();
     }
 
-    function isAuthenticated() {
-      return isAuthReady && !!currentFirebaseUser;
-    }
-
-    function requireAuth(action = 'usar el Prode') {
-      if (isAuthenticated()) return true;
-      console.warn(`Accion bloqueada sin sesion: ${action}`);
-      setAuthGate(null);
-      return false;
-    }
-
-    function getAuthErrorMessage(error) {
-      const code = error?.code || '';
-      const messages = {
-        'auth/email-already-in-use': 'Ese email ya tiene una cuenta. Probá iniciar sesión.',
-        'auth/invalid-email': 'El email no tiene un formato válido.',
-        'auth/invalid-credential': 'Email o contraseña incorrectos.',
-        'auth/user-not-found': 'No existe una cuenta con ese email.',
-        'auth/wrong-password': 'La contraseña es incorrecta.',
-        'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
-        'auth/popup-closed-by-user': 'Se cerró la ventana de Google antes de completar el ingreso.',
-        'auth/cancelled-popup-request': 'Ya hay una ventana de Google abierta.',
-        'auth/popup-blocked': 'El navegador bloqueó la ventana de Google. Permití popups para este sitio.',
-        'auth/operation-not-allowed': 'Este método de acceso no está habilitado en Firebase Console.',
-        'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase Authentication.'
-      };
-
-      return messages[code] || 'No se pudo completar la operación. Revisá los datos e intentá nuevamente.';
-    }
-
-    function getFirestoreErrorMessage(error, action) {
-      if (error?.code === 'permission-denied') {
-        return `Firestore rechazó ${action}: permisos insuficientes para el usuario actual.`;
-      }
-
-      return `No se pudo ${action} en Firestore.`;
-    }
-
-    function setAuthLoading(isLoading, message = 'Conectando...') {
-      authActionLoading = isLoading;
-
-      const status = document.getElementById('authStatus');
-      const buttons = ['loginSubmitBtn', 'registerSubmitBtn', 'googleLoginBtn', 'authModeBtn']
-        .map(id => document.getElementById(id))
-        .filter(Boolean);
-
-      buttons.forEach(button => {
-        button.disabled = isLoading;
-      });
-
-      if (status) {
-        status.innerText = message;
-        status.style.display = isLoading ? 'block' : 'none';
-      }
-    }
-
     function setAuthGate(user) {
       currentFirebaseUser = user || null;
       isAuthReady = true;
@@ -1693,13 +1541,9 @@
       const header = document.querySelector('header');
       const main = document.querySelector('main');
 
-      applyTheme();
-
       if (currentFirebaseUser) {
         currentProfileName = getFirebaseDisplayName(currentFirebaseUser);
         localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
-        clearAuthError();
-        setAuthLoading(false);
 
         if (!players.includes(currentProfileName)) {
           players.push(currentProfileName);
@@ -1715,10 +1559,8 @@
       }
 
       currentProfileName = '';
-      isAdmin = false;
       localStorage.removeItem(STORAGE_KEYS.profileName);
       localStorage.removeItem(STORAGE_KEYS.adminSession);
-      setAuthLoading(false);
 
       if (loginScreen) loginScreen.style.display = 'flex';
       if (header) header.style.display = 'none';
@@ -1771,9 +1613,7 @@
       const profileWelcome = document.getElementById('profileWelcome');
       const headerUserAvatar = document.getElementById('headerUserAvatar');
       const headerUserName = document.getElementById('headerUserName');
-      const headerUserEmail = document.getElementById('headerUserEmail');
       const headerUserPoints = document.getElementById('headerUserPoints');
-      const profileEmailStatus = document.getElementById('profileEmailStatus');
 
       if (profileNameInput) {
         profileNameInput.value = currentProfileName;
@@ -1801,14 +1641,6 @@
 
       if (headerUserName) {
         headerUserName.innerText = currentProfileName || 'Usuario';
-      }
-
-      if (headerUserEmail) {
-        headerUserEmail.innerText = currentFirebaseUser?.email || '';
-      }
-
-      if (profileEmailStatus) {
-        profileEmailStatus.innerText = currentFirebaseUser?.email ? `Email: ${currentFirebaseUser.email}` : '';
       }
 
       const profilePhotoStatus = document.getElementById('profilePhotoStatus');
@@ -1840,7 +1672,6 @@
     }
 
     function saveProfilePhoto(event) {
-      if (!requireAuth('guardar foto de perfil')) return;
       const file = event.target.files && event.target.files[0];
       if (!file) return;
 
@@ -1859,7 +1690,6 @@
     }
 
     function deleteProfilePhoto() {
-      if (!requireAuth('borrar foto de perfil')) return;
       currentProfilePhoto = '';
       localStorage.removeItem(STORAGE_KEYS.profilePhoto);
       const input = document.getElementById('profilePhotoInput');
@@ -1867,8 +1697,7 @@
       renderAll();
     }
 
-    async function saveProfileName() {
-      if (!requireAuth('guardar nombre de perfil')) return;
+    function saveProfileName() {
       const input = document.getElementById('profileNameInput');
       const name = input ? input.value.trim() : '';
       if (!name) {
@@ -1883,16 +1712,13 @@
         players.push(name);
       }
 
-      if (window.prodeFirebase?.updateDisplayName) {
-        try {
-          await window.prodeFirebase.updateDisplayName(name);
-        } catch (error) {
-          console.warn('No se pudo actualizar displayName en Firebase Auth:', error);
-        }
-      }
-
       saveAll();
-      renderAll();
+      if (currentProfileName) {
+      const loginScreen = document.getElementById('loginScreen');
+      if (loginScreen) loginScreen.style.display = 'none';
+    }
+
+    renderAll();
       alert('Usuario guardado correctamente');
     }
 
@@ -1912,11 +1738,6 @@
     }
 
     function saveAll() {
-      if (!isAuthenticated()) {
-        console.warn('Guardado local/nube bloqueado: no hay usuario autenticado');
-        return;
-      }
-
       localStorage.setItem(STORAGE_KEYS.resultLock, JSON.stringify(isResultLocked));
       localStorage.setItem(STORAGE_KEYS.predictionLock, JSON.stringify(arePredictionsLocked));
       localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(players));
@@ -1930,7 +1751,6 @@
 
       firebaseLoading = true;
       try {
-        console.log('☁️ Cargando datos desde Firestore: prode/mundial2026');
         const cloudData = await window.prodeFirebase.loadData();
         if (cloudData) {
           if (Array.isArray(cloudData.players)) players = cloudData.players;
@@ -1955,9 +1775,8 @@
               arePredictionsLocked
             });
           }
-          console.log('☁️ Datos cargados desde Firestore: prode/mundial2026');
+          console.log('☁️ Datos cargados desde Firestore');
         } else {
-          console.log('☁️ No existe prode/mundial2026; inicializando con datos locales');
           await window.prodeFirebase.saveData({
             players,
             matches,
@@ -1965,11 +1784,11 @@
             isResultLocked,
             arePredictionsLocked
           });
-          console.log('☁️ Firestore inicializado con datos locales: prode/mundial2026');
+          console.log('☁️ Firestore inicializado con datos locales');
         }
         renderAll();
       } catch (error) {
-        console.warn(getFirestoreErrorMessage(error, 'cargar datos'), error);
+        console.warn('No se pudieron cargar datos desde Firestore:', error);
       } finally {
         firebaseLoading = false;
       }
@@ -1979,7 +1798,6 @@
       if (!window.prodeFirebase || !currentFirebaseUser || (!firebaseEnabled && !force) || firebaseLoading) return;
 
       try {
-        console.log('☁️ Guardando datos en Firestore: prode/mundial2026');
         await window.prodeFirebase.saveData({
           players,
           matches,
@@ -1987,9 +1805,9 @@
           isResultLocked,
           arePredictionsLocked
         });
-        console.log('☁️ Datos guardados en Firestore: prode/mundial2026');
+        console.log('☁️ Datos guardados en Firestore');
       } catch (error) {
-        console.warn(getFirestoreErrorMessage(error, 'guardar datos'), error);
+        console.warn('No se pudieron guardar datos en Firestore:', error);
       }
     }
 
@@ -2016,7 +1834,6 @@
     }
 
     function showTab(id, button) {
-      if (!requireAuth(`abrir pestaña ${id}`)) return;
       document.querySelectorAll('.tab').forEach(tab => tab.classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
       document.querySelectorAll('.tab-btn').forEach(tabButton => tabButton.classList.remove('active'));
@@ -2076,7 +1893,6 @@
     }
 
     async function loginApp() {
-      if (authActionLoading) return;
       const { email, password } = getAuthFormValues();
       clearAuthError();
 
@@ -2091,17 +1907,14 @@
       }
 
       try {
-        setAuthLoading(true, 'Ingresando...');
         await window.prodeFirebase.login({ email, password });
       } catch (error) {
         console.warn('No se pudo iniciar sesión:', error);
-        showAuthError(getAuthErrorMessage(error));
-        setAuthLoading(false);
+        showAuthError('Email o contraseña incorrectos');
       }
     }
 
     async function registerApp() {
-      if (authActionLoading) return;
       const { displayName, email, password } = getAuthFormValues();
       clearAuthError();
 
@@ -2121,31 +1934,10 @@
       }
 
       try {
-        setAuthLoading(true, 'Creando cuenta...');
         await window.prodeFirebase.register({ displayName, email, password });
       } catch (error) {
         console.warn('No se pudo registrar:', error);
-        showAuthError(getAuthErrorMessage(error));
-        setAuthLoading(false);
-      }
-    }
-
-    async function loginWithGoogle() {
-      if (authActionLoading) return;
-      clearAuthError();
-
-      if (!window.prodeFirebase) {
-        showAuthError('Firebase todavía se está cargando');
-        return;
-      }
-
-      try {
-        setAuthLoading(true, 'Abriendo Google...');
-        await window.prodeFirebase.loginWithGoogle();
-      } catch (error) {
-        console.warn('No se pudo iniciar sesión con Google:', error);
-        showAuthError(getAuthErrorMessage(error));
-        setAuthLoading(false);
+        showAuthError('No se pudo crear la cuenta. Revisá el email o intentá con otra contraseña.');
       }
     }
 
@@ -2183,7 +1975,6 @@
     }
 
     function updateResult(id, field, value) {
-      if (!requireAuth('actualizar resultado')) return;
       if (!isAdmin) return;
 
       const match = matches.find(item => item.id === id);
@@ -2232,7 +2023,6 @@
     }
 
     function savePrediction() {
-      if (!requireAuth('guardar pronóstico')) return;
       const player = document.getElementById('playerSelect').value;
       const matchId = Number(document.getElementById('matchSelect').value);
       const home = Number(document.getElementById('predHome').value);
@@ -2281,7 +2071,6 @@
     }
 
     function deletePrediction(index) {
-      if (!requireAuth('borrar pronóstico')) return;
       if (!isAdmin) return;
       predictions.splice(index, 1);
       saveAll();
@@ -2452,8 +2241,6 @@
     }
 
     function deletePlayer(index) {
-      if (!requireAuth('borrar jugador')) return;
-      if (!isAdmin) return;
       const name = players[index];
       players.splice(index, 1);
       predictions = predictions.filter(p => p.player !== name);
@@ -2462,7 +2249,6 @@
     }
 
     function addPlayer() {
-      if (!requireAuth('agregar jugador')) return;
       if (!isAdmin) return;
       const input = document.getElementById('newPlayer');
       const name = input.value.trim();
@@ -2474,16 +2260,12 @@
     }
 
     function toggleResultLock() {
-      if (!requireAuth('cambiar bloqueo de resultados')) return;
-      if (!isAdmin) return;
       isResultLocked = !isResultLocked;
       saveAll();
       renderAll();
     }
 
     function togglePredictionLock() {
-      if (!requireAuth('cambiar bloqueo de pronósticos')) return;
-      if (!isAdmin) return;
       arePredictionsLocked = !arePredictionsLocked;
       saveAll();
       renderAll();
@@ -2572,11 +2354,6 @@
     }
 
     function renderAll() {
-      if (!isAuthenticated()) {
-        applyTheme();
-        return;
-      }
-
       applyTheme();
       applyProfile();
       updateAdminUI();

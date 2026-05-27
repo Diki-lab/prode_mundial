@@ -15,8 +15,10 @@
 ## Prioridad alta
 
 - Activar Email/Password en Firebase Authentication.
+- Activar Google en Firebase Authentication y autorizar el dominio de GitHub Pages.
 - Publicar reglas de Firestore que exijan usuario autenticado.
 - Probar registro, login y logout desde GitHub Pages.
+- Probar login con Google desde GitHub Pages.
 - Verificar que `prode/mundial2026` no pierda datos existentes.
 - Separar pronosticos por usuario para evitar pisado de datos.
 - Implementar roles admin reales en Firestore o Firebase custom claims.
@@ -24,8 +26,8 @@
 
 ## Prioridad media
 
-- Mejorar mensajes de error de Auth segun codigo de Firebase.
-- Agregar estado visual de carga durante login, registro y logout.
+- Ampliar mensajes de error de Auth segun nuevos codigos detectados en produccion.
+- Mejorar estado visual de carga durante carga inicial de sesion y Firestore.
 - Agregar confirmacion al cerrar sesion.
 - Agregar recuperacion de contrasena.
 - Agregar validacion de email mas clara en el formulario.
@@ -45,6 +47,7 @@
 
 - No confiar en checks de admin hechos solo en frontend.
 - Crear documento de roles, por ejemplo `roles/{uid}`, o usar custom claims.
+- Usar reglas Firestore para que solo admins reales escriban resultados y bloqueos.
 - Reestructurar Firestore para que cada usuario escriba solo sus propios pronosticos.
 - Validar en reglas que un usuario no pueda modificar pronosticos ajenos.
 - Bloquear escritura de resultados para usuarios no admin.
@@ -65,6 +68,7 @@
 
 - Crear una vista admin dedicada.
 - Separar gestion de jugadores, resultados y bloqueo de pronosticos.
+- Mostrar claramente que el admin actual es visual/local hasta que existan reglas y roles reales.
 - Agregar confirmaciones antes de borrar jugadores o pronosticos.
 - Agregar filtros para encontrar pronosticos por usuario o partido.
 - Mostrar ultimas acciones administrativas.
