@@ -111,7 +111,7 @@
 ### Admin oficial
 
 ```text
-davidalejandro.mcfarlane@gmail.com
+dmcfarlane@prode.local
 ```
 
 Ese usuario debe quedar como:
@@ -123,6 +123,8 @@ Todos los demas usuarios:
 
 - `role: "user"`
 - `isAdmin: false`
+
+No usar Gmail personal como admin oficial. No usar password hardcodeada en frontend. El admin debe registrarse o iniciar sesion por Firebase Auth.
 
 ### Configuracion pendiente en Firebase Console
 

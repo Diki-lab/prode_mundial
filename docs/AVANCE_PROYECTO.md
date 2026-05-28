@@ -198,7 +198,7 @@ Cada documento incluye:
 El admin oficial es:
 
 ```text
-davidalejandro.mcfarlane@gmail.com
+dmcfarlane@prode.local
 ```
 
 Ese email queda con:
@@ -210,6 +210,8 @@ Todo otro usuario queda con:
 
 - `role: "user"`
 - `isAdmin: false`
+
+No se usa Gmail personal como admin oficial. Tampoco se debe volver a un login hardcodeado con usuario y password en el frontend: el admin debe registrarse o iniciar sesion mediante Firebase Auth igual que cualquier otro usuario.
 
 La UI usa `isCurrentUserAdmin()` para mostrar u ocultar controles admin. Esta proteccion es funcional en frontend, pero no reemplaza reglas Firestore ni custom claims.
 

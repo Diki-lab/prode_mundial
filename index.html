@@ -1358,7 +1358,7 @@
     const db = getFirestore(app);
     const prodeDocRef = doc(db, "prode", "mundial2026");
     const predictionsCollectionRef = collection(db, "prode", "mundial2026", "predictions");
-    const OFFICIAL_ADMIN_EMAIL = "davidalejandro.mcfarlane@gmail.com";
+    const OFFICIAL_ADMIN_EMAIL = "dmcfarlane@prode.local";
 
     function getUserRole(user) {
       return (user?.email || "").toLowerCase() === OFFICIAL_ADMIN_EMAIL ? "admin" : "user";
@@ -1640,7 +1640,7 @@
     let isAuthReady = false;
     let isRegisterMode = false;
     let isAdmin = false;
-    const OFFICIAL_ADMIN_EMAIL = 'davidalejandro.mcfarlane@gmail.com';
+    const OFFICIAL_ADMIN_EMAIL = 'dmcfarlane@prode.local';
     let rankingPredictions = [];
     let legacyRankingPredictions = [];
 
@@ -2840,7 +2840,7 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
-      assertTest('usuario admin configurado correctamente', OFFICIAL_ADMIN_EMAIL === 'davidalejandro.mcfarlane@gmail.com');
+      assertTest('usuario admin configurado correctamente', OFFICIAL_ADMIN_EMAIL === 'dmcfarlane@prode.local');
       assertTest('pantalla inicio existe', document.getElementById('inicio') !== null);
       assertTest('saveCloudData existe', typeof saveCloudData === 'function');
       assertTest('loadCloudData existe', typeof loadCloudData === 'function');

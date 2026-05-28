@@ -207,9 +207,11 @@ prode/mundial2026/predictions/{uid}
 Regla funcional de frontend:
 
 ```text
-davidalejandro.mcfarlane@gmail.com -> admin
+dmcfarlane@prode.local -> admin
 otros usuarios registrados -> user
 ```
+
+No se usa Gmail personal como admin oficial. No debe existir password hardcodeada en el frontend ni se debe volver al login local anterior. El usuario admin debe existir e iniciar sesion por Firebase Auth.
 
 La funcion principal del frontend para admin es:
 
