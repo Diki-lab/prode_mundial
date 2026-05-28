@@ -126,6 +126,8 @@ Todos los demas usuarios:
 
 No usar Gmail personal como admin oficial. No usar password hardcodeada en frontend. El admin debe registrarse o iniciar sesion por Firebase Auth.
 
+La comparacion admin debe hacerse siempre con email autenticado normalizado mediante `trim().toLowerCase()`. La UI debe mostrar el rol calculado desde Firebase Auth y no desde un valor viejo guardado en Firestore.
+
 ### Configuracion pendiente en Firebase Console
 
 Habilitar Google Provider:

@@ -1358,25 +1358,37 @@
     const db = getFirestore(app);
     const prodeDocRef = doc(db, "prode", "mundial2026");
     const predictionsCollectionRef = collection(db, "prode", "mundial2026", "predictions");
-    const OFFICIAL_ADMIN_EMAIL = "dmcfarlane@prode.local";
+    const ADMIN_EMAIL = "dmcfarlane@prode.local";
+
+    function normalizeEmail(email) {
+      return (email || "").trim().toLowerCase();
+    }
 
     function getUserRole(user) {
-      return (user?.email || "").toLowerCase() === OFFICIAL_ADMIN_EMAIL ? "admin" : "user";
+      return normalizeEmail(user?.email) === ADMIN_EMAIL ? "admin" : "user";
     }
 
     async function saveUserProfile(user) {
       if (!user) return;
       const providerIds = user.providerData.map(provider => provider.providerId);
-      const emailUser = (user.email || "").split("@")[0].toLowerCase();
+      const normalizedEmail = normalizeEmail(user.email);
+      const emailUser = normalizedEmail.split("@")[0];
       const displayName = user.displayName || emailUser || "";
       const role = getUserRole(user);
       const isAdmin = role === "admin";
+      console.log("Rol Firebase Auth:", {
+        authenticatedEmail: user.email || "",
+        normalizedEmail,
+        ADMIN_EMAIL,
+        role,
+        isAdmin
+      });
       const userRef = doc(db, "users", user.uid);
       const currentProfile = await getDoc(userRef);
       const profileData = {
         uid: user.uid,
         displayName,
-        email: user.email || "",
+        email: normalizedEmail,
         role,
         providers: providerIds,
         isAdmin,
@@ -1640,7 +1652,7 @@
     let isAuthReady = false;
     let isRegisterMode = false;
     let isAdmin = false;
-    const OFFICIAL_ADMIN_EMAIL = 'dmcfarlane@prode.local';
+    const ADMIN_EMAIL = 'dmcfarlane@prode.local';
     let rankingPredictions = [];
     let legacyRankingPredictions = [];
 
@@ -1664,17 +1676,20 @@
       return user.displayName || (user.email ? user.email.split('@')[0] : '');
     }
 
-    function isFirebaseAdmin(user) {
-      if (!user) return false;
-      return (user.email || '').toLowerCase() === OFFICIAL_ADMIN_EMAIL;
+    function normalizeEmail(email) {
+      return (email || '').trim().toLowerCase();
+    }
+
+    function getUserRole(user) {
+      return normalizeEmail(user?.email) === ADMIN_EMAIL ? 'admin' : 'user';
     }
 
     function getCurrentUserRole() {
-      return isCurrentUserAdmin() ? 'admin' : 'user';
+      return getUserRole(currentFirebaseUser);
     }
 
     function isCurrentUserAdmin() {
-      return isFirebaseAdmin(currentFirebaseUser);
+      return normalizeEmail(currentFirebaseUser?.email) === ADMIN_EMAIL;
     }
 
     function isAuthenticated() {
@@ -1800,7 +1815,16 @@
     function setAuthGate(user) {
       currentFirebaseUser = user || null;
       isAuthReady = true;
-      isAdmin = isFirebaseAdmin(currentFirebaseUser);
+      isAdmin = isCurrentUserAdmin();
+      if (currentFirebaseUser) {
+        console.log("Rol UI Firebase Auth:", {
+          authenticatedEmail: currentFirebaseUser.email || "",
+          normalizedEmail: normalizeEmail(currentFirebaseUser.email),
+          ADMIN_EMAIL,
+          role: getCurrentUserRole(),
+          isAdmin
+        });
+      }
 
       const loginScreen = document.getElementById('loginScreen');
       const header = document.querySelector('header');
@@ -2349,7 +2373,7 @@
 
     function toggleAdminMode() {
       if (!isAdmin) return;
-      alert(`Admin activo: ${OFFICIAL_ADMIN_EMAIL}`);
+      alert(`Admin activo: ${ADMIN_EMAIL}`);
       renderAll();
     }
 
@@ -2840,7 +2864,7 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
-      assertTest('usuario admin configurado correctamente', OFFICIAL_ADMIN_EMAIL === 'dmcfarlane@prode.local');
+      assertTest('usuario admin configurado correctamente', ADMIN_EMAIL === 'dmcfarlane@prode.local');
       assertTest('pantalla inicio existe', document.getElementById('inicio') !== null);
       assertTest('saveCloudData existe', typeof saveCloudData === 'function');
       assertTest('loadCloudData existe', typeof loadCloudData === 'function');

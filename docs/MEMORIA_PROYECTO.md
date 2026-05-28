@@ -213,6 +213,8 @@ otros usuarios registrados -> user
 
 No se usa Gmail personal como admin oficial. No debe existir password hardcodeada en el frontend ni se debe volver al login local anterior. El usuario admin debe existir e iniciar sesion por Firebase Auth.
 
+El rol se calcula desde el email autenticado normalizado con `trim().toLowerCase()`. La UI no debe depender de un valor viejo de Firestore para mostrar el rol. En cada inicio de sesion, `users/{uid}` se actualiza con el rol calculado, corrigiendo documentos previos que hubieran quedado como `user`.
+
 La funcion principal del frontend para admin es:
 
 ```text

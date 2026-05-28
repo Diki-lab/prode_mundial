@@ -213,6 +213,8 @@ Todo otro usuario queda con:
 
 No se usa Gmail personal como admin oficial. Tampoco se debe volver a un login hardcodeado con usuario y password en el frontend: el admin debe registrarse o iniciar sesion mediante Firebase Auth igual que cualquier otro usuario.
 
+La comparacion de rol se hace siempre contra el email autenticado normalizado con `trim().toLowerCase()`. Si `users/{uid}` ya existia con `role: "user"` para `dmcfarlane@prode.local`, se actualiza automaticamente al iniciar sesion porque `saveUserProfile(user)` vuelve a escribir `role` e `isAdmin` con `merge: true`.
+
 La UI usa `isCurrentUserAdmin()` para mostrar u ocultar controles admin. Esta proteccion es funcional en frontend, pero no reemplaza reglas Firestore ni custom claims.
 
 ### Pronosticos
