@@ -38,7 +38,7 @@
 - Agregar exportacion de pronosticos.
 - Agregar historial de cambios.
 - Agregar configuracion de perfil mas completa.
-- Agregar avatar remoto en vez de guardar imagen base64 en `localStorage`.
+- Si se agregan fotos reales, usar Firebase Storage en vez de base64 en Firestore.
 - Mejorar textos de bienvenida y estados vacios.
 
 ## Mejoras de seguridad
@@ -104,6 +104,7 @@
 - Funcion frontend `isCurrentUserAdmin()`.
 - Visualizacion de rol actual en la UI.
 - Google Login removido: el sistema usa solamente Email/Password.
+- Avatar por usuario guardado en `users/{uid}` sin Firebase Storage.
 
 ### Admin oficial
 
@@ -160,6 +161,12 @@ Reglas futuras recomendadas:
 ### Pendiente para admin/ranking
 
 La vista admin muestra pronosticos consolidados en modo solo lectura. Queda pendiente una pantalla admin dedicada para revisar, filtrar o corregir pronosticos por usuario sin riesgo de pisar documentos ajenos.
+
+### Pendiente para avatar
+
+- Si en el futuro se quieren fotos reales, usar Firebase Storage o un servicio dedicado.
+- No guardar imagenes base64 grandes en Firestore.
+- Mantener los campos livianos actuales: `avatarType`, `avatarValue`, `avatarColor` y `photoURL`.
 
 ## Ideas futuras
 

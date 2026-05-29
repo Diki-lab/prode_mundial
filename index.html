@@ -1297,6 +1297,7 @@
               <div class="profile-title">👤 Mi usuario</div>
               <div class="profile-subtitle" id="profileWelcome">Bienvenido al Prode Mundial 2026</div>
               <div class="profile-subtitle" id="profileEmailStatus"></div>
+              <div class="profile-subtitle" id="profileRoleStatus"></div>
               <input id="profileNameInput" placeholder="Escribí tu nombre" style="margin-top:10px">
               <button class="primary" onclick="saveProfileName()" style="margin-top:10px">Guardar usuario</button>
               <br><small class="muted" id="profileNameStatus">Sin usuario guardado</small>
@@ -1312,10 +1313,19 @@
               <div class="profile-subtitle">Pronósticos cargados</div>
             </div>
             <div class="profile-item">
-              <div class="profile-center">📱 Foto / Avatar</div>
-              <input id="profilePhotoInput" type="file" accept="image/*" onchange="saveProfilePhoto(event)" style="margin-top:10px">
-              <button class="danger" onclick="deleteProfilePhoto()" style="margin-top:10px">Quitar foto</button>
-              <div class="profile-subtitle" id="profilePhotoStatus">Sin foto cargada</div>
+              <div class="profile-center">👤 Avatar</div>
+              <label for="avatarTypeSelect" style="margin-top:10px">Tipo</label>
+              <select id="avatarTypeSelect" onchange="previewAvatarSettings()">
+                <option value="initial">Inicial</option>
+                <option value="emoji">Emoji</option>
+                <option value="color">Color</option>
+              </select>
+              <label for="avatarValueInput" style="margin-top:10px">Inicial o emoji</label>
+              <input id="avatarValueInput" maxlength="4" placeholder="Ej: D o ⚽" oninput="previewAvatarSettings()">
+              <label for="avatarColorInput" style="margin-top:10px">Color</label>
+              <input id="avatarColorInput" type="color" value="#0d47a1" oninput="previewAvatarSettings()">
+              <button class="primary" onclick="saveAvatarSettings()" style="margin-top:10px">Guardar avatar</button>
+              <div class="profile-subtitle" id="avatarStatus">Avatar por defecto</div>
             </div>
             <div class="profile-item">
               🚪 Cerrar sesión<br>
@@ -1391,6 +1401,7 @@
         role,
         providers: providerIds,
         isAdmin,
+        photoURL: user.photoURL || "",
         lastLoginAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
@@ -1406,6 +1417,10 @@
       auth,
       async loadData() {
         const snapshot = await getDoc(prodeDocRef);
+        return snapshot.exists() ? snapshot.data() : null;
+      },
+      async loadUserProfile(uid) {
+        const snapshot = await getDoc(doc(db, "users", uid));
         return snapshot.exists() ? snapshot.data() : null;
       },
       async saveData(data) {
@@ -1474,6 +1489,15 @@
       },
       async saveUserProfile(user) {
         await saveUserProfile(user);
+      },
+      async saveUserAvatar(user, avatar) {
+        await setDoc(doc(db, "users", user.uid), {
+          avatarType: avatar.avatarType,
+          avatarValue: avatar.avatarValue,
+          avatarColor: avatar.avatarColor,
+          photoURL: avatar.photoURL || "",
+          updatedAt: serverTimestamp()
+        }, { merge: true });
       }
     };
 
@@ -1638,6 +1662,7 @@
     let currentTheme = localStorage.getItem(STORAGE_KEYS.theme) || 'light';
     let currentProfileName = localStorage.getItem(STORAGE_KEYS.profileName) || '';
     let currentProfilePhoto = localStorage.getItem(STORAGE_KEYS.profilePhoto) || '';
+    let currentUserAvatar = { avatarType: 'initial', avatarValue: '', avatarColor: '#0d47a1', photoURL: '' };
     let currentFirebaseUser = null;
     let isAuthReady = false;
     let isRegisterMode = false;
@@ -1659,6 +1684,47 @@
         .slice(0, 2)
         .map(word => word[0]?.toUpperCase() || '')
         .join('');
+    }
+
+    function getDefaultAvatarValue() {
+      const source = currentProfileName || currentFirebaseUser?.displayName || currentFirebaseUser?.email || '';
+      return getInitials(source) || '👤';
+    }
+
+    function getValidAvatarColor(color) {
+      return /^#[0-9a-f]{6}$/i.test(color || '') ? color : '#0d47a1';
+    }
+
+    function normalizeAvatarSettings(data = {}) {
+      const allowedTypes = ['initial', 'emoji', 'color'];
+      const avatarType = allowedTypes.includes(data.avatarType) ? data.avatarType : 'initial';
+      const avatarValue = String(data.avatarValue || '').trim().slice(0, 4);
+      return {
+        avatarType,
+        avatarValue,
+        avatarColor: getValidAvatarColor(data.avatarColor),
+        photoURL: String(data.photoURL || '').trim()
+      };
+    }
+
+    function getAvatarDisplayValue(settings = currentUserAvatar) {
+      if (settings.avatarType === 'emoji' && settings.avatarValue) return settings.avatarValue;
+      if ((settings.avatarType === 'initial' || settings.avatarType === 'color') && settings.avatarValue) {
+        return settings.avatarValue.slice(0, 2).toUpperCase();
+      }
+      return getDefaultAvatarValue();
+    }
+
+    function renderAvatarElement(element, settings = currentUserAvatar) {
+      if (!element) return;
+      const photoURL = settings.photoURL || '';
+      element.style.background = getValidAvatarColor(settings.avatarColor);
+      element.style.borderColor = 'rgba(255,255,255,.42)';
+      if (photoURL) {
+        element.innerHTML = `<img src="${escapeHtml(photoURL)}" alt="Foto de perfil">`;
+      } else {
+        element.textContent = getAvatarDisplayValue(settings);
+      }
     }
 
     function getFirebaseDisplayName(user) {
@@ -1814,6 +1880,7 @@
       if (currentFirebaseUser) {
         currentProfileName = getFirebaseDisplayName(currentFirebaseUser);
         localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
+        currentUserAvatar = normalizeAvatarSettings({ photoURL: currentFirebaseUser.photoURL || '' });
         predictions = [];
         rankingPredictions = [];
         localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
@@ -1829,16 +1896,18 @@
         if (header) header.style.display = '';
         if (main) main.style.display = '';
         renderAll();
+        loadCurrentUserProfile();
         loadCloudData();
         return;
       }
 
       currentProfileName = '';
       isAdmin = false;
+      currentUserAvatar = normalizeAvatarSettings();
       localStorage.removeItem(STORAGE_KEYS.profileName);
       localStorage.removeItem(STORAGE_KEYS.adminSession);
       const headerUserAvatar = document.getElementById('headerUserAvatar');
-      if (headerUserAvatar) headerUserAvatar.textContent = '👤';
+      renderAvatarElement(headerUserAvatar, currentUserAvatar);
       setAuthLoading(false);
 
       if (loginScreen) loginScreen.style.display = 'flex';
@@ -1896,6 +1965,11 @@
       const headerUserRole = document.getElementById('headerUserRole');
       const headerUserPoints = document.getElementById('headerUserPoints');
       const profileEmailStatus = document.getElementById('profileEmailStatus');
+      const profileRoleStatus = document.getElementById('profileRoleStatus');
+      const avatarTypeSelect = document.getElementById('avatarTypeSelect');
+      const avatarValueInput = document.getElementById('avatarValueInput');
+      const avatarColorInput = document.getElementById('avatarColorInput');
+      const avatarStatus = document.getElementById('avatarStatus');
 
       if (profileNameInput) {
         profileNameInput.value = currentProfileName;
@@ -1906,20 +1980,11 @@
       }
 
       if (profileAvatar) {
-        if (currentProfilePhoto) {
-          profileAvatar.innerHTML = `<img src="${currentProfilePhoto}" alt="Foto de perfil">`;
-        } else {
-          profileAvatar.innerText = currentProfileName ? getInitials(currentProfileName) : '👤';
-        }
+        renderAvatarElement(profileAvatar);
       }
 
       if (headerUserAvatar) {
-        const authPhotoUrl = currentFirebaseUser?.photoURL || '';
-        if (authPhotoUrl) {
-          headerUserAvatar.innerHTML = `<img src="${escapeHtml(authPhotoUrl)}" alt="Foto de perfil">`;
-        } else {
-          headerUserAvatar.innerText = currentProfileName ? getInitials(currentProfileName) : '👤';
-        }
+        renderAvatarElement(headerUserAvatar);
       }
 
       if (headerUserName) {
@@ -1938,9 +2003,17 @@
         profileEmailStatus.innerText = currentFirebaseUser?.email ? `Email: ${currentFirebaseUser.email}` : '';
       }
 
-      const profilePhotoStatus = document.getElementById('profilePhotoStatus');
-      if (profilePhotoStatus) {
-        profilePhotoStatus.innerText = currentProfilePhoto ? 'Foto cargada correctamente' : 'Sin foto cargada';
+      if (profileRoleStatus) {
+        profileRoleStatus.innerText = `Rol: ${getCurrentUserRole()}`;
+      }
+
+      if (avatarTypeSelect) avatarTypeSelect.value = currentUserAvatar.avatarType;
+      if (avatarValueInput) avatarValueInput.value = currentUserAvatar.avatarValue;
+      if (avatarColorInput) avatarColorInput.value = getValidAvatarColor(currentUserAvatar.avatarColor);
+      if (avatarStatus) {
+        avatarStatus.innerText = currentUserAvatar.avatarValue || currentUserAvatar.photoURL
+          ? 'Avatar personalizado'
+          : 'Avatar por defecto';
       }
 
       if (profileWelcome) {
@@ -1963,6 +2036,45 @@
           const totalPredictions = predictions.filter(p => p.player === currentProfileName).length;
           myPredictionsCount.innerText = totalPredictions;
         }
+      }
+    }
+
+    function getAvatarSettingsFromForm() {
+      const avatarType = document.getElementById('avatarTypeSelect')?.value || 'initial';
+      const avatarValue = (document.getElementById('avatarValueInput')?.value || '').trim();
+      const avatarColor = document.getElementById('avatarColorInput')?.value || '#0d47a1';
+      return normalizeAvatarSettings({
+        avatarType,
+        avatarValue,
+        avatarColor,
+        photoURL: currentFirebaseUser?.photoURL || ''
+      });
+    }
+
+    function previewAvatarSettings() {
+      currentUserAvatar = getAvatarSettingsFromForm();
+      renderAvatarElement(document.getElementById('profileAvatar'));
+      renderAvatarElement(document.getElementById('headerUserAvatar'));
+      const avatarStatus = document.getElementById('avatarStatus');
+      if (avatarStatus) avatarStatus.innerText = 'Vista previa sin guardar';
+    }
+
+    async function saveAvatarSettings() {
+      if (!requireAuth('guardar avatar')) return;
+      if (!window.prodeFirebase?.saveUserAvatar || !currentFirebaseUser) return;
+
+      currentUserAvatar = getAvatarSettingsFromForm();
+      const avatarStatus = document.getElementById('avatarStatus');
+      if (avatarStatus) avatarStatus.innerText = 'Guardando avatar...';
+
+      try {
+        await window.prodeFirebase.saveUserAvatar(currentFirebaseUser, currentUserAvatar);
+        renderAll();
+        const updatedStatus = document.getElementById('avatarStatus');
+        if (updatedStatus) updatedStatus.innerText = 'Avatar guardado correctamente';
+      } catch (error) {
+        console.warn(getFirestoreErrorMessage(error, 'guardar avatar'), error);
+        if (avatarStatus) avatarStatus.innerText = 'No se pudo guardar el avatar';
       }
     }
 
@@ -2063,6 +2175,23 @@
       localStorage.setItem(STORAGE_KEYS.players, JSON.stringify(players));
       localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
       saveCloudData();
+    }
+
+    async function loadCurrentUserProfile() {
+      if (!window.prodeFirebase || !currentFirebaseUser) return;
+
+      try {
+        const userProfile = await window.prodeFirebase.loadUserProfile(currentFirebaseUser.uid);
+        currentUserAvatar = normalizeAvatarSettings({
+          avatarType: userProfile?.avatarType,
+          avatarValue: userProfile?.avatarValue,
+          avatarColor: userProfile?.avatarColor,
+          photoURL: userProfile?.photoURL || currentFirebaseUser.photoURL || ''
+        });
+        renderAll();
+      } catch (error) {
+        console.warn(getFirestoreErrorMessage(error, 'cargar perfil de usuario'), error);
+      }
     }
 
     async function loadCloudData() {
@@ -2821,6 +2950,8 @@
       assertTest('boton admin superior existe', document.getElementById('adminBtnTop') !== null);
       assertTest('toggleTheme existe', typeof toggleTheme === 'function');
       assertTest('saveProfileName existe', typeof saveProfileName === 'function');
+      assertTest('saveAvatarSettings existe', typeof saveAvatarSettings === 'function');
+      assertTest('normalizeAvatarSettings existe', typeof normalizeAvatarSettings === 'function');
       assertTest('logoutApp existe', typeof logoutApp === 'function');
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');

@@ -180,6 +180,10 @@ Cada documento incluye:
 - `role`
 - `isAdmin`
 - `providers`
+- `avatarType`
+- `avatarValue`
+- `avatarColor`
+- `photoURL`
 - `createdAt`
 - `updatedAt`
 - `lastLoginAt`
@@ -260,3 +264,25 @@ La seguridad real todavia debe reforzarse con reglas Firestore o custom claims. 
 ### Backups
 
 No se creo ningun backup nuevo de `index.html`. El respaldo principal es Git.
+
+## Actualizacion - avatar por usuario
+
+Se agrego personalizacion de avatar por usuario sin usar Firebase Storage y sin guardar imagenes base64 grandes en Firestore.
+
+Los campos se guardan en:
+
+```text
+users/{uid}
+```
+
+Campos de avatar:
+
+- `avatarType`: `"initial"`, `"emoji"` o `"color"`
+- `avatarValue`: texto corto para inicial o emoji
+- `avatarColor`: color hexadecimal del fondo
+- `photoURL`: opcional, si Firebase Auth lo provee
+- `updatedAt`
+
+Al iniciar sesion, la app carga `users/{uid}` y aplica el avatar en el header y en la pantalla `Mi perfil`. Si no existe avatar guardado, usa inicial del nombre visible, inicial del email o icono por defecto.
+
+El avatar se limpia visualmente al cerrar sesion para evitar mostrar datos del usuario anterior.

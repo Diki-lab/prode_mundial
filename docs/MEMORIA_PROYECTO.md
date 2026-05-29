@@ -200,6 +200,10 @@ prode/mundial2026/predictions/{uid}
 - `role`
 - `isAdmin`
 - `providers`
+- `avatarType`
+- `avatarValue`
+- `avatarColor`
+- `photoURL`
 - `createdAt`
 - `updatedAt`
 - `lastLoginAt`
@@ -246,3 +250,21 @@ dmcfarlane@prode.local
 ### Backups
 
 No crear mas archivos `index_backup_YYYYMMDD_HHMM.html`. El proyecto esta versionado en Git y Git debe usarse como respaldo principal.
+
+### Avatar de usuario
+
+El avatar de cada usuario se guarda en Firestore dentro de:
+
+```text
+users/{uid}
+```
+
+Campos usados:
+
+- `avatarType`: `"initial"`, `"emoji"` o `"color"`
+- `avatarValue`: valor corto para mostrar en el circulo
+- `avatarColor`: color de fondo
+- `photoURL`: opcional si Firebase Auth entrega una URL
+- `updatedAt`
+
+No se usa Firebase Storage todavia. No se guardan imagenes base64 grandes en Firestore. Para usuarios internos `nombre@prode.local`, normalmente se muestra inicial, emoji o color configurado.
