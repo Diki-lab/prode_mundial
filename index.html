@@ -2256,6 +2256,21 @@
       }
     }
 
+    function getAvatarUploadErrorMessage(error) {
+      const text = [
+        error?.code,
+        error?.message,
+        error?.name,
+        String(error || '')
+      ].filter(Boolean).join(' ');
+
+      if (text.includes('ERR_CERT_AUTHORITY_INVALID') || text.toLowerCase().includes('certificate')) {
+        return 'Error de certificado/proxy al subir la foto.';
+      }
+
+      return 'No se pudo subir la foto. Revisá conexión, proxy o permisos de Firebase Storage.';
+    }
+
     async function saveAvatarSettings() {
       if (!requireAuth('guardar avatar')) return;
       if (!window.prodeFirebase?.saveUserAvatar || !currentFirebaseUser) return;
@@ -2263,6 +2278,7 @@
       currentUserAvatar = getAvatarSettingsFromForm();
       const avatarStatus = document.getElementById('avatarStatus');
       const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+      let didSave = false;
       if (saveAvatarBtn) {
         saveAvatarBtn.disabled = true;
         saveAvatarBtn.innerText = 'Guardando...';
@@ -2288,17 +2304,25 @@
           email: currentFirebaseUser.email,
           ...currentUserAvatar
         });
+        didSave = true;
         renderAll();
         const updatedStatus = document.getElementById('avatarStatus');
         if (updatedStatus) updatedStatus.innerText = 'Foto guardada correctamente';
       } catch (error) {
         console.warn('No se pudo subir la foto:', error);
-        if (avatarStatus) avatarStatus.innerText = 'No se pudo subir la foto';
+        const updatedStatus = document.getElementById('avatarStatus') || avatarStatus;
+        if (updatedStatus) updatedStatus.innerText = getAvatarUploadErrorMessage(error);
       } finally {
         const updatedButton = document.getElementById('saveAvatarBtn');
         if (updatedButton) {
           updatedButton.disabled = false;
           updatedButton.innerText = 'Guardar avatar';
+        }
+        const updatedStatus = document.getElementById('avatarStatus');
+        if (updatedStatus && updatedStatus.innerText === 'Guardando avatar...') {
+          updatedStatus.innerText = didSave
+            ? 'Foto guardada correctamente'
+            : 'No se pudo subir la foto. Revisá conexión, proxy o permisos de Firebase Storage.';
         }
       }
     }
