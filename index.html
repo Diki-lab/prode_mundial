@@ -156,18 +156,19 @@
     }
 
     .header-user-avatar {
-      width: 62px;
-      height: 62px;
+      width: 44px;
+      height: 44px;
       border-radius: 50%;
       display: grid;
       place-items: center;
       background: linear-gradient(135deg, #0d47a1, #22c55e);
-      border: 3px solid #22c55e;
+      border: 2px solid rgba(255,255,255,.42);
       color: white;
-      font-size: 26px;
+      font-size: 18px;
       font-weight: 900;
       overflow: hidden;
-      box-shadow: 0 0 18px rgba(34,197,94,.30);
+      box-shadow: 0 0 14px rgba(34,197,94,.25);
+      flex-shrink: 0;
     }
 
     .header-user-avatar img {
@@ -789,9 +790,7 @@
         display: block;
       }
 
-      .header-nav,
-      .header-user-info,
-      .header-user-avatar {
+      .header-user-info {
         display: none;
       }
 
@@ -799,8 +798,28 @@
         text-align: center;
       }
 
+      .header-nav {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 14px;
+      }
+
+      .header-nav button {
+        font-size: 12px;
+        padding: 9px 4px;
+      }
+
       .header-user {
         display: block;
+      }
+
+      .header-user-avatar {
+        width: 40px;
+        height: 40px;
+        margin: 10px auto 0;
+        font-size: 16px;
       }
 
       header h1 {
@@ -859,11 +878,6 @@
 
       body.dark-theme #themeHeaderBtn::before {
         content: "☀️";
-      }
-
-      #profileBtn::before {
-        content: "👤";
-        font-size: 22px;
       }
 
       #adminBtnTop::before {
@@ -1010,6 +1024,7 @@
 
     <nav class="header-nav" aria-label="Accesos principales">
       <button class="active" onclick="showTab('inicio')">⌂ Inicio</button>
+      <button onclick="showTab('perfil')">👤 Mi perfil</button>
       <button onclick="showTab('ranking')">♕ Ranking</button>
       <button onclick="showTab('jugadores')">♜ Admin</button>
     </nav>
@@ -1024,7 +1039,6 @@
       </div>
       <div class="top-actions">
         <button id="themeHeaderBtn" class="top-action-btn" onclick="toggleTheme()">🌙</button>
-        <button id="profileBtn" class="top-action-btn" onclick="showTab('perfil')">👤 Mi perfil</button>
         <button id="adminBtnTop" class="top-action-btn" onclick="toggleAdminMode()">👑 Admin</button>
         <button id="logoutHeaderBtn" class="top-action-btn" onclick="logoutApp()">Salir</button>
       </div>
@@ -1823,6 +1837,8 @@
       isAdmin = false;
       localStorage.removeItem(STORAGE_KEYS.profileName);
       localStorage.removeItem(STORAGE_KEYS.adminSession);
+      const headerUserAvatar = document.getElementById('headerUserAvatar');
+      if (headerUserAvatar) headerUserAvatar.textContent = '👤';
       setAuthLoading(false);
 
       if (loginScreen) loginScreen.style.display = 'flex';
@@ -1898,8 +1914,9 @@
       }
 
       if (headerUserAvatar) {
-        if (currentProfilePhoto) {
-          headerUserAvatar.innerHTML = `<img src="${currentProfilePhoto}" alt="Foto de perfil">`;
+        const authPhotoUrl = currentFirebaseUser?.photoURL || '';
+        if (authPhotoUrl) {
+          headerUserAvatar.innerHTML = `<img src="${escapeHtml(authPhotoUrl)}" alt="Foto de perfil">`;
         } else {
           headerUserAvatar.innerText = currentProfileName ? getInitials(currentProfileName) : '👤';
         }
