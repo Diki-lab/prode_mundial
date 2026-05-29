@@ -267,7 +267,7 @@ No se creo ningun backup nuevo de `index.html`. El respaldo principal es Git.
 
 ## Actualizacion - avatar por usuario
 
-Se agrego personalizacion de avatar por usuario sin usar Firebase Storage y sin guardar imagenes base64 grandes en Firestore.
+Se agrego personalizacion de avatar por usuario. El avatar liviano se guarda en Firestore y las fotos reales se guardan en Firebase Storage, sin guardar imagenes base64 grandes en Firestore.
 
 Los campos se guardan en:
 
@@ -283,6 +283,40 @@ Campos de avatar:
 - `photoURL`: opcional, si Firebase Auth lo provee
 - `updatedAt`
 
-Al iniciar sesion, la app carga `users/{uid}` y aplica el avatar en el header y en la pantalla `Mi perfil`. Si no existe avatar guardado, usa inicial del nombre visible, inicial del email o icono por defecto.
+Fotos reales:
+
+```text
+Storage: users/{uid}/avatar
+```
+
+Al iniciar sesion, la app carga `users/{uid}` y aplica el avatar en el header, en la pantalla `Mi perfil` y en el podio de Inicio cuando corresponde. Si no existe avatar guardado, usa inicial del nombre visible, inicial del email o icono por defecto.
 
 El avatar se limpia visualmente al cerrar sesion para evitar mostrar datos del usuario anterior.
+
+Para probar la subida de foto:
+
+1. Iniciar sesion con Email/Password.
+2. Abrir `Mi perfil`.
+3. Adjuntar una imagen menor a 2 MB o permitir que la app intente reducirla.
+4. Presionar `Guardar avatar`.
+5. Verificar que la foto se vea en header, perfil y que `users/{uid}.photoURL` quede actualizado.
+6. Cerrar sesion y volver a iniciar sesion para confirmar que la foto se recupera desde Firestore/Storage.
+
+## Actualizacion - ranking destacado en Inicio
+
+La pantalla Inicio ahora incluye un podio visual con los 3 primeros del ranking actual. Usa la misma logica de `getRankingTotals()`: ordena por puntos descendente y, ante empate, por nombre alfabetico.
+
+Cada tarjeta del podio muestra:
+
+1. Avatar o foto circular.
+2. Nombre del jugador.
+3. Puntos.
+
+El ranking completo sigue existiendo en su pantalla original.
+
+Para probar el podio:
+
+1. Cargar resultados reales o usar datos con puntos existentes.
+2. Abrir `Inicio`.
+3. Confirmar que se muestran hasta 3 jugadores con avatar/foto, nombre y puntos.
+4. Comparar contra la pantalla `Ranking`.

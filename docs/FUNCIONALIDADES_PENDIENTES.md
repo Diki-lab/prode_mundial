@@ -38,7 +38,7 @@
 - Agregar exportacion de pronosticos.
 - Agregar historial de cambios.
 - Agregar configuracion de perfil mas completa.
-- Si se agregan fotos reales, usar Firebase Storage en vez de base64 en Firestore.
+- Fotos reales de perfil integradas con Firebase Storage.
 - Mejorar textos de bienvenida y estados vacios.
 
 ## Mejoras de seguridad
@@ -104,7 +104,8 @@
 - Funcion frontend `isCurrentUserAdmin()`.
 - Visualizacion de rol actual en la UI.
 - Google Login removido: el sistema usa solamente Email/Password.
-- Avatar por usuario guardado en `users/{uid}` sin Firebase Storage.
+- Avatar por usuario guardado en `users/{uid}` y fotos reales en Firebase Storage.
+- Podio visual agregado en Inicio con los 3 primeros del ranking.
 
 ### Admin oficial
 
@@ -162,11 +163,19 @@ Reglas futuras recomendadas:
 
 La vista admin muestra pronosticos consolidados en modo solo lectura. Queda pendiente una pantalla admin dedicada para revisar, filtrar o corregir pronosticos por usuario sin riesgo de pisar documentos ajenos.
 
-### Pendiente para avatar
+### Avatar y fotos
 
-- Si en el futuro se quieren fotos reales, usar Firebase Storage o un servicio dedicado.
+- Las fotos reales se guardan en Firebase Storage en `users/{uid}/avatar`.
+- La URL de descarga se guarda en `users/{uid}.photoURL`.
 - No guardar imagenes base64 grandes en Firestore.
 - Mantener los campos livianos actuales: `avatarType`, `avatarValue`, `avatarColor` y `photoURL`.
+
+### Podio de Inicio
+
+- El podio usa los datos reales de `getRankingTotals()`.
+- Muestra avatar/foto, nombre y puntos para los 3 primeros.
+- Los empates se resuelven con la logica actual del ranking: puntos y luego nombre alfabetico.
+- Probar visualmente en desktop y mobile comparando contra la pantalla `Ranking`.
 
 ## Ideas futuras
 

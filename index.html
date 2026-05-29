@@ -757,6 +757,83 @@
       width: 100%;
     }
 
+    .home-podium {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      gap: 16px;
+      align-items: end;
+      margin-top: 16px;
+    }
+
+    .podium-card {
+      min-height: 210px;
+      border-radius: 22px;
+      padding: 18px;
+      display: grid;
+      justify-items: center;
+      align-content: center;
+      gap: 10px;
+      text-align: center;
+      background: linear-gradient(180deg, var(--card), color-mix(in srgb, var(--soft) 70%, var(--card)));
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+
+    .podium-card.first {
+      min-height: 250px;
+      border-color: #facc15;
+      background: linear-gradient(180deg, color-mix(in srgb, #facc15 18%, var(--card)), var(--card));
+    }
+
+    .podium-card.second { border-color: #94a3b8; }
+    .podium-card.third { border-color: #fb923c; }
+
+    .podium-rank {
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .podium-avatar {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      color: white;
+      font-weight: 900;
+      font-size: 28px;
+      overflow: hidden;
+      border: 3px solid rgba(255,255,255,.78);
+      box-shadow: 0 12px 26px rgba(0,0,0,.18);
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+    }
+
+    .podium-card.first .podium-avatar {
+      width: 88px;
+      height: 88px;
+      font-size: 32px;
+    }
+
+    .podium-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .podium-name {
+      font-size: 18px;
+      font-weight: 900;
+      color: var(--text);
+    }
+
+    .podium-points {
+      color: var(--warning-text);
+      background: var(--warning-soft);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font-weight: 900;
+    }
+
     .card-blue { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); }
     .card-green { border-color: color-mix(in srgb, var(--secondary) 55%, var(--border)); }
     .card-purple { border-color: #7c3aed; }
@@ -775,6 +852,16 @@
     @media (max-width: 980px) {
       .dashboard-grid {
         grid-template-columns: repeat(2, 1fr);
+      }
+
+      .home-podium {
+        grid-template-columns: 1fr;
+        align-items: stretch;
+      }
+
+      .podium-card,
+      .podium-card.first {
+        min-height: 190px;
       }
     }
 
@@ -1062,6 +1149,12 @@
         <img src="banner-mundial-2026.png" alt="Banner Mundial 2026" class="hero-banner">
       </div>
 
+      <div class="card">
+        <h2>🏆 Podio del Prode</h2>
+        <p class="muted">Los tres mejores del ranking actual.</p>
+        <div class="home-podium" id="homePodium"></div>
+      </div>
+
       <div class="dashboard-grid">
         <div class="dashboard-card card-blue">
           <div>
@@ -1324,6 +1417,8 @@
               <input id="avatarValueInput" maxlength="4" placeholder="Ej: D o ⚽" oninput="previewAvatarSettings()">
               <label for="avatarColorInput" style="margin-top:10px">Color</label>
               <input id="avatarColorInput" type="color" value="#0d47a1" oninput="previewAvatarSettings()">
+              <label for="avatarPhotoInput" style="margin-top:10px">Adjuntar foto</label>
+              <input id="avatarPhotoInput" type="file" accept="image/*" onchange="previewAvatarPhoto(event)">
               <button class="primary" onclick="saveAvatarSettings()" style="margin-top:10px">Guardar avatar</button>
               <div class="profile-subtitle" id="avatarStatus">Avatar por defecto</div>
             </div>
@@ -1351,6 +1446,7 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, getDocs, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDwxw1RRMscOdwGlACEklGS6RgDPKEondk",
@@ -1365,6 +1461,7 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
+    const storage = getStorage(app);
     const prodeDocRef = doc(db, "prode", "mundial2026");
     const predictionsCollectionRef = collection(db, "prode", "mundial2026", "predictions");
     const ADMIN_EMAIL = "dmcfarlane@prode.local";
@@ -1401,10 +1498,13 @@
         role,
         providers: providerIds,
         isAdmin,
-        photoURL: user.photoURL || "",
         lastLoginAt: serverTimestamp(),
         updatedAt: serverTimestamp()
       };
+
+      if (user.photoURL) {
+        profileData.photoURL = user.photoURL;
+      }
 
       if (!currentProfile.exists() || !currentProfile.data()?.createdAt) {
         profileData.createdAt = serverTimestamp();
@@ -1422,6 +1522,10 @@
       async loadUserProfile(uid) {
         const snapshot = await getDoc(doc(db, "users", uid));
         return snapshot.exists() ? snapshot.data() : null;
+      },
+      async loadUserProfiles() {
+        const snapshot = await getDocs(collection(db, "users"));
+        return snapshot.docs.map(item => item.data());
       },
       async saveData(data) {
         await setDoc(prodeDocRef, {
@@ -1498,6 +1602,11 @@
           photoURL: avatar.photoURL || "",
           updatedAt: serverTimestamp()
         }, { merge: true });
+      },
+      async uploadUserAvatar(user, file) {
+        const avatarRef = ref(storage, `users/${user.uid}/avatar`);
+        await uploadBytes(avatarRef, file, { contentType: file.type || 'image/jpeg' });
+        return getDownloadURL(avatarRef);
       }
     };
 
@@ -1663,6 +1772,9 @@
     let currentProfileName = localStorage.getItem(STORAGE_KEYS.profileName) || '';
     let currentProfilePhoto = localStorage.getItem(STORAGE_KEYS.profilePhoto) || '';
     let currentUserAvatar = { avatarType: 'initial', avatarValue: '', avatarColor: '#0d47a1', photoURL: '' };
+    let pendingAvatarFile = null;
+    let pendingAvatarPreviewUrl = '';
+    let userProfilesByName = {};
     let currentFirebaseUser = null;
     let isAuthReady = false;
     let isRegisterMode = false;
@@ -1708,6 +1820,7 @@
     }
 
     function getAvatarDisplayValue(settings = currentUserAvatar) {
+      settings = normalizeAvatarSettings(settings);
       if (settings.avatarType === 'emoji' && settings.avatarValue) return settings.avatarValue;
       if ((settings.avatarType === 'initial' || settings.avatarType === 'color') && settings.avatarValue) {
         return settings.avatarValue.slice(0, 2).toUpperCase();
@@ -1725,6 +1838,41 @@
       } else {
         element.textContent = getAvatarDisplayValue(settings);
       }
+    }
+
+    function rememberUserProfile(profile = {}) {
+      const settings = normalizeAvatarSettings(profile);
+      const keys = [profile.displayName, profile.email]
+        .map(value => String(value || '').trim())
+        .filter(Boolean);
+
+      keys.forEach(key => {
+        userProfilesByName[key.toLowerCase()] = settings;
+      });
+    }
+
+    function getAvatarForPlayer(player) {
+      return userProfilesByName[String(player || '').trim().toLowerCase()] || normalizeAvatarSettings({
+        avatarType: 'initial',
+        avatarValue: getInitials(player || ''),
+        avatarColor: '#0d47a1'
+      });
+    }
+
+    function buildAvatarMarkup(settings, className = 'podium-avatar') {
+      const normalized = normalizeAvatarSettings(settings);
+      const value = getAvatarDisplayValue(normalized);
+      const color = getValidAvatarColor(normalized.avatarColor);
+      if (normalized.photoURL) {
+        return `<div class="${className}" style="background:${escapeHtml(color)}"><img src="${escapeHtml(normalized.photoURL)}" alt="Avatar"></div>`;
+      }
+      return `<div class="${className}" style="background:${escapeHtml(color)}">${escapeHtml(value)}</div>`;
+    }
+
+    function clearPendingAvatarPhoto() {
+      if (pendingAvatarPreviewUrl) URL.revokeObjectURL(pendingAvatarPreviewUrl);
+      pendingAvatarFile = null;
+      pendingAvatarPreviewUrl = '';
     }
 
     function getFirebaseDisplayName(user) {
@@ -1881,6 +2029,12 @@
         currentProfileName = getFirebaseDisplayName(currentFirebaseUser);
         localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
         currentUserAvatar = normalizeAvatarSettings({ photoURL: currentFirebaseUser.photoURL || '' });
+        userProfilesByName = {};
+        rememberUserProfile({
+          displayName: currentProfileName,
+          email: currentFirebaseUser.email,
+          ...currentUserAvatar
+        });
         predictions = [];
         rankingPredictions = [];
         localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
@@ -1904,6 +2058,8 @@
       currentProfileName = '';
       isAdmin = false;
       currentUserAvatar = normalizeAvatarSettings();
+      clearPendingAvatarPhoto();
+      userProfilesByName = {};
       localStorage.removeItem(STORAGE_KEYS.profileName);
       localStorage.removeItem(STORAGE_KEYS.adminSession);
       const headerUserAvatar = document.getElementById('headerUserAvatar');
@@ -2011,7 +2167,9 @@
       if (avatarValueInput) avatarValueInput.value = currentUserAvatar.avatarValue;
       if (avatarColorInput) avatarColorInput.value = getValidAvatarColor(currentUserAvatar.avatarColor);
       if (avatarStatus) {
-        avatarStatus.innerText = currentUserAvatar.avatarValue || currentUserAvatar.photoURL
+        avatarStatus.innerText = pendingAvatarFile
+          ? 'Foto lista para guardar'
+          : currentUserAvatar.avatarValue || currentUserAvatar.photoURL
           ? 'Avatar personalizado'
           : 'Avatar por defecto';
       }
@@ -2047,16 +2205,74 @@
         avatarType,
         avatarValue,
         avatarColor,
-        photoURL: currentFirebaseUser?.photoURL || ''
+        photoURL: currentUserAvatar.photoURL || currentFirebaseUser?.photoURL || ''
       });
     }
 
     function previewAvatarSettings() {
       currentUserAvatar = getAvatarSettingsFromForm();
+      if (pendingAvatarPreviewUrl) currentUserAvatar.photoURL = pendingAvatarPreviewUrl;
       renderAvatarElement(document.getElementById('profileAvatar'));
       renderAvatarElement(document.getElementById('headerUserAvatar'));
       const avatarStatus = document.getElementById('avatarStatus');
       if (avatarStatus) avatarStatus.innerText = 'Vista previa sin guardar';
+    }
+
+    async function compressImageFile(file) {
+      if (file.size <= 2 * 1024 * 1024) return file;
+
+      const image = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      await new Promise((resolve, reject) => {
+        image.onload = resolve;
+        image.onerror = reject;
+        image.src = objectUrl;
+      });
+      URL.revokeObjectURL(objectUrl);
+
+      const maxSize = 900;
+      const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.max(1, Math.round(image.width * scale));
+      canvas.height = Math.max(1, Math.round(image.height * scale));
+      const context = canvas.getContext('2d');
+      context.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+      const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.82));
+      if (!blob || blob.size > 2 * 1024 * 1024) {
+        throw new Error('La imagen supera el maximo de 2 MB');
+      }
+
+      return new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+    }
+
+    async function previewAvatarPhoto(event) {
+      if (!requireAuth('adjuntar foto')) return;
+      const file = event.target.files && event.target.files[0];
+      const avatarStatus = document.getElementById('avatarStatus');
+      if (!file) return;
+
+      if (!file.type.startsWith('image/')) {
+        if (avatarStatus) avatarStatus.innerText = 'Adjunta un archivo de imagen';
+        event.target.value = '';
+        return;
+      }
+
+      try {
+        clearPendingAvatarPhoto();
+        pendingAvatarFile = await compressImageFile(file);
+        pendingAvatarPreviewUrl = URL.createObjectURL(pendingAvatarFile);
+        currentUserAvatar = getAvatarSettingsFromForm();
+        currentUserAvatar.photoURL = pendingAvatarPreviewUrl;
+        renderAvatarElement(document.getElementById('profileAvatar'));
+        renderAvatarElement(document.getElementById('headerUserAvatar'));
+        if (avatarStatus) avatarStatus.innerText = 'Foto lista para guardar';
+      } catch (error) {
+        console.warn('No se pudo preparar la foto:', error);
+        if (avatarStatus) avatarStatus.innerText = 'La imagen es demasiado grande';
+        event.target.value = '';
+        clearPendingAvatarPhoto();
+      }
     }
 
     async function saveAvatarSettings() {
@@ -2068,7 +2284,24 @@
       if (avatarStatus) avatarStatus.innerText = 'Guardando avatar...';
 
       try {
+        if (pendingAvatarFile) {
+          try {
+            currentUserAvatar.photoURL = await window.prodeFirebase.uploadUserAvatar(currentFirebaseUser, pendingAvatarFile);
+          } catch (error) {
+            console.warn('No se pudo subir la foto:', error);
+            if (avatarStatus) avatarStatus.innerText = 'No se pudo subir la foto';
+            return;
+          }
+          clearPendingAvatarPhoto();
+          const avatarPhotoInput = document.getElementById('avatarPhotoInput');
+          if (avatarPhotoInput) avatarPhotoInput.value = '';
+        }
         await window.prodeFirebase.saveUserAvatar(currentFirebaseUser, currentUserAvatar);
+        rememberUserProfile({
+          displayName: currentProfileName,
+          email: currentFirebaseUser.email,
+          ...currentUserAvatar
+        });
         renderAll();
         const updatedStatus = document.getElementById('avatarStatus');
         if (updatedStatus) updatedStatus.innerText = 'Avatar guardado correctamente';
@@ -2188,6 +2421,11 @@
           avatarColor: userProfile?.avatarColor,
           photoURL: userProfile?.photoURL || currentFirebaseUser.photoURL || ''
         });
+        rememberUserProfile({
+          displayName: userProfile?.displayName || currentProfileName,
+          email: userProfile?.email || currentFirebaseUser.email,
+          ...currentUserAvatar
+        });
         renderAll();
       } catch (error) {
         console.warn(getFirestoreErrorMessage(error, 'cargar perfil de usuario'), error);
@@ -2220,6 +2458,9 @@
 
           try {
             const predictionDocs = await window.prodeFirebase.loadAllPredictions();
+            predictionDocs.forEach(item => rememberUserProfile(item));
+            const userProfiles = await window.prodeFirebase.loadUserProfiles();
+            userProfiles.forEach(profile => rememberUserProfile(profile));
             rankingPredictions = [
               ...legacyPredictions,
               ...predictionDocs.flatMap(item => normalizePredictionList(item.predictions, item.displayName || item.email))
@@ -2297,6 +2538,9 @@
 
         try {
           const predictionDocs = await window.prodeFirebase.loadAllPredictions();
+          predictionDocs.forEach(item => rememberUserProfile(item));
+          const userProfiles = await window.prodeFirebase.loadUserProfiles();
+          userProfiles.forEach(profile => rememberUserProfile(profile));
           rankingPredictions = [
             ...legacyRankingPredictions,
             ...predictionDocs.flatMap(item => normalizePredictionList(item.predictions, item.displayName || item.email))
@@ -2632,6 +2876,34 @@
       }).join('');
     }
 
+    function renderHomePodium() {
+      const container = document.getElementById('homePodium');
+      if (!container) return;
+
+      const topThree = getRankingTotals().slice(0, 3);
+      if (!topThree.length) {
+        container.innerHTML = '<p class="muted">Todavia no hay puntos cargados.</p>';
+        return;
+      }
+
+      const ordered = [topThree[1], topThree[0], topThree[2]].filter(Boolean);
+      const classes = ['first', 'second', 'third'];
+      const icons = ['🥇', '🥈', '🥉'];
+
+      container.innerHTML = ordered.map(row => {
+        const rankIndex = topThree.indexOf(row);
+        const avatar = getAvatarForPlayer(row.player);
+        return `
+          <div class="podium-card ${classes[rankIndex] || ''}">
+            <div class="podium-rank">${icons[rankIndex] || rankIndex + 1}</div>
+            ${buildAvatarMarkup(avatar)}
+            <div class="podium-name">${escapeHtml(row.player)}</div>
+            <div class="podium-points">${row.points} pts</div>
+          </div>
+        `;
+      }).join('');
+    }
+
     function getSimpleGroupName(text) {
       const match = text.match(/Grupo ([A-L])/);
       return match ? `Grupo ${match[1]}` : text;
@@ -2904,6 +3176,7 @@
       renderSelectors();
       renderPredictions();
       renderRanking();
+      renderHomePodium();
       renderGroupTables();
       renderPlayers();
     }

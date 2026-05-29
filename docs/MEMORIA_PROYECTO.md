@@ -47,6 +47,7 @@ La aplicacion principal esta concentrada en `index.html`. No hay build step, ser
 - Firebase App SDK desde CDN.
 - Firebase Authentication desde CDN.
 - Firebase Firestore desde CDN.
+- Firebase Storage desde CDN para fotos de perfil.
 - `localStorage` para persistencia local.
 - GitHub Pages como hosting estatico esperado.
 
@@ -267,4 +268,25 @@ Campos usados:
 - `photoURL`: opcional si Firebase Auth entrega una URL
 - `updatedAt`
 
-No se usa Firebase Storage todavia. No se guardan imagenes base64 grandes en Firestore. Para usuarios internos `nombre@prode.local`, normalmente se muestra inicial, emoji o color configurado.
+Las fotos reales de perfil se guardan en Firebase Storage:
+
+```text
+users/{uid}/avatar
+```
+
+La URL descargable se guarda en `users/{uid}.photoURL`. No se guardan imagenes base64 grandes en Firestore. Para usuarios internos `nombre@prode.local`, si no hay foto se muestra inicial, emoji o color configurado.
+
+### Ranking destacado en Inicio
+
+La pantalla Inicio muestra un podio visual con los 3 primeros del ranking. El calculo usa `getRankingTotals()`, igual que el ranking completo:
+
+- Mas puntos primero.
+- Si hay empate, orden alfabetico por nombre.
+
+Cada tarjeta muestra avatar/foto, nombre y puntos, en ese orden. El ranking completo se mantiene en la pantalla `Ranking`.
+
+Pruebas recomendadas:
+
+- Subir una foto desde `Mi perfil`, guardar y confirmar que aparece en header y perfil.
+- Cerrar sesion, volver a ingresar y confirmar que la foto se carga desde `users/{uid}.photoURL`.
+- Abrir `Inicio` y comparar el podio contra el ranking completo.
