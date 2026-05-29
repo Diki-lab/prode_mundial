@@ -274,7 +274,7 @@ Las fotos reales de perfil se guardan en Firebase Storage:
 users/{uid}/avatar
 ```
 
-La URL descargable se guarda en `users/{uid}.photoURL`. No se guardan imagenes base64 grandes en Firestore. Para usuarios internos `nombre@prode.local`, si no hay foto se muestra inicial, emoji o color configurado.
+La URL descargable se guarda en `users/{uid}.photoURL`. No se guardan imagenes base64 grandes en Firestore. Para usuarios internos `nombre@prode.local`, si no hay foto se muestra inicial, emoji o color como fallback interno. La UI de `Mi perfil` solo permite adjuntar y guardar una foto real.
 
 ### Ranking destacado en Inicio
 

@@ -267,7 +267,7 @@ No se creo ningun backup nuevo de `index.html`. El respaldo principal es Git.
 
 ## Actualizacion - avatar por usuario
 
-Se agrego personalizacion de avatar por usuario. El avatar liviano se guarda en Firestore y las fotos reales se guardan en Firebase Storage, sin guardar imagenes base64 grandes en Firestore.
+Se agrego foto real de perfil por usuario. El fallback liviano se mantiene internamente en Firestore, pero en `Mi perfil` el usuario solo edita la foto real. Las fotos se guardan en Firebase Storage, sin guardar imagenes base64 grandes en Firestore.
 
 Los campos se guardan en:
 
@@ -282,6 +282,8 @@ Campos de avatar:
 - `avatarColor`: color hexadecimal del fondo
 - `photoURL`: opcional, si Firebase Auth lo provee
 - `updatedAt`
+
+`avatarType`, `avatarValue` y `avatarColor` quedan como fallback interno cuando no hay foto. La UI visible de `Mi perfil` muestra solamente `Adjuntar foto`, vista previa y `Guardar avatar`.
 
 Fotos reales:
 

@@ -169,6 +169,7 @@ La vista admin muestra pronosticos consolidados en modo solo lectura. Queda pend
 - La URL de descarga se guarda en `users/{uid}.photoURL`.
 - No guardar imagenes base64 grandes en Firestore.
 - Mantener los campos livianos actuales: `avatarType`, `avatarValue`, `avatarColor` y `photoURL`.
+- La UI de `Mi perfil` solo expone adjuntar foto; inicial, emoji y color quedan como fallback interno.
 
 ### Podio de Inicio
 

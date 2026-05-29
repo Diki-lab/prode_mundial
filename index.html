@@ -1407,19 +1407,9 @@
             </div>
             <div class="profile-item">
               <div class="profile-center">👤 Avatar</div>
-              <label for="avatarTypeSelect" style="margin-top:10px">Tipo</label>
-              <select id="avatarTypeSelect" onchange="previewAvatarSettings()">
-                <option value="initial">Inicial</option>
-                <option value="emoji">Emoji</option>
-                <option value="color">Color</option>
-              </select>
-              <label for="avatarValueInput" style="margin-top:10px">Inicial o emoji</label>
-              <input id="avatarValueInput" maxlength="4" placeholder="Ej: D o ⚽" oninput="previewAvatarSettings()">
-              <label for="avatarColorInput" style="margin-top:10px">Color</label>
-              <input id="avatarColorInput" type="color" value="#0d47a1" oninput="previewAvatarSettings()">
               <label for="avatarPhotoInput" style="margin-top:10px">Adjuntar foto</label>
               <input id="avatarPhotoInput" type="file" accept="image/*" onchange="previewAvatarPhoto(event)">
-              <button class="primary" onclick="saveAvatarSettings()" style="margin-top:10px">Guardar avatar</button>
+              <button class="primary" id="saveAvatarBtn" onclick="saveAvatarSettings()" style="margin-top:10px">Guardar avatar</button>
               <div class="profile-subtitle" id="avatarStatus">Avatar por defecto</div>
             </div>
             <div class="profile-item">
@@ -2122,9 +2112,6 @@
       const headerUserPoints = document.getElementById('headerUserPoints');
       const profileEmailStatus = document.getElementById('profileEmailStatus');
       const profileRoleStatus = document.getElementById('profileRoleStatus');
-      const avatarTypeSelect = document.getElementById('avatarTypeSelect');
-      const avatarValueInput = document.getElementById('avatarValueInput');
-      const avatarColorInput = document.getElementById('avatarColorInput');
       const avatarStatus = document.getElementById('avatarStatus');
 
       if (profileNameInput) {
@@ -2163,9 +2150,6 @@
         profileRoleStatus.innerText = `Rol: ${getCurrentUserRole()}`;
       }
 
-      if (avatarTypeSelect) avatarTypeSelect.value = currentUserAvatar.avatarType;
-      if (avatarValueInput) avatarValueInput.value = currentUserAvatar.avatarValue;
-      if (avatarColorInput) avatarColorInput.value = getValidAvatarColor(currentUserAvatar.avatarColor);
       if (avatarStatus) {
         avatarStatus.innerText = pendingAvatarFile
           ? 'Foto lista para guardar'
@@ -2198,13 +2182,10 @@
     }
 
     function getAvatarSettingsFromForm() {
-      const avatarType = document.getElementById('avatarTypeSelect')?.value || 'initial';
-      const avatarValue = (document.getElementById('avatarValueInput')?.value || '').trim();
-      const avatarColor = document.getElementById('avatarColorInput')?.value || '#0d47a1';
       return normalizeAvatarSettings({
-        avatarType,
-        avatarValue,
-        avatarColor,
+        avatarType: currentUserAvatar.avatarType || 'initial',
+        avatarValue: currentUserAvatar.avatarValue || '',
+        avatarColor: currentUserAvatar.avatarColor || '#0d47a1',
         photoURL: currentUserAvatar.photoURL || currentFirebaseUser?.photoURL || ''
       });
     }
@@ -2281,21 +2262,26 @@
 
       currentUserAvatar = getAvatarSettingsFromForm();
       const avatarStatus = document.getElementById('avatarStatus');
+      const saveAvatarBtn = document.getElementById('saveAvatarBtn');
+      if (saveAvatarBtn) {
+        saveAvatarBtn.disabled = true;
+        saveAvatarBtn.innerText = 'Guardando...';
+      }
       if (avatarStatus) avatarStatus.innerText = 'Guardando avatar...';
 
       try {
         if (pendingAvatarFile) {
-          try {
-            currentUserAvatar.photoURL = await window.prodeFirebase.uploadUserAvatar(currentFirebaseUser, pendingAvatarFile);
-          } catch (error) {
-            console.warn('No se pudo subir la foto:', error);
-            if (avatarStatus) avatarStatus.innerText = 'No se pudo subir la foto';
-            return;
-          }
+          currentUserAvatar.photoURL = await window.prodeFirebase.uploadUserAvatar(currentFirebaseUser, pendingAvatarFile);
           clearPendingAvatarPhoto();
           const avatarPhotoInput = document.getElementById('avatarPhotoInput');
           if (avatarPhotoInput) avatarPhotoInput.value = '';
         }
+
+        if (!currentUserAvatar.photoURL) {
+          if (avatarStatus) avatarStatus.innerText = 'Adjunta una foto antes de guardar';
+          return;
+        }
+
         await window.prodeFirebase.saveUserAvatar(currentFirebaseUser, currentUserAvatar);
         rememberUserProfile({
           displayName: currentProfileName,
@@ -2304,10 +2290,16 @@
         });
         renderAll();
         const updatedStatus = document.getElementById('avatarStatus');
-        if (updatedStatus) updatedStatus.innerText = 'Avatar guardado correctamente';
+        if (updatedStatus) updatedStatus.innerText = 'Foto guardada correctamente';
       } catch (error) {
-        console.warn(getFirestoreErrorMessage(error, 'guardar avatar'), error);
-        if (avatarStatus) avatarStatus.innerText = 'No se pudo guardar el avatar';
+        console.warn('No se pudo subir la foto:', error);
+        if (avatarStatus) avatarStatus.innerText = 'No se pudo subir la foto';
+      } finally {
+        const updatedButton = document.getElementById('saveAvatarBtn');
+        if (updatedButton) {
+          updatedButton.disabled = false;
+          updatedButton.innerText = 'Guardar avatar';
+        }
       }
     }
 
