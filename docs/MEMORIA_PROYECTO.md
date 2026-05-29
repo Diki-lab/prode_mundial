@@ -86,7 +86,7 @@ Claves locales principales:
 - Mantener la app como archivo estatico para conservar compatibilidad con GitHub Pages.
 - Usar Firebase Auth directamente desde CDN, sin bundler.
 - Usar `onAuthStateChanged` como fuente de verdad para mostrar u ocultar el Prode.
-- Mantener Email/Password y sumar Google Auth por popup, sin cambiar `firebaseConfig`.
+- Mantener Firebase Auth Email/Password, sin Google Login y sin cambiar `firebaseConfig`.
 - Mantener el documento existente `prode/mundial2026` para no borrar datos actuales.
 - Guardar datos basicos de usuario en `users/{uid}` sin afectar la estructura principal.
 - Conservar las funciones actuales de fixture, pronosticos, ranking y admin.
@@ -104,7 +104,7 @@ Claves locales principales:
 
 ## Como funciona el login
 
-El usuario accede con email y contrasena usando Firebase Authentication. Tambien existe acceso con Google mediante popup, siempre que el proveedor Google este habilitado en Firebase Console y el dominio de GitHub Pages este autorizado.
+El usuario accede con email y contrasena usando Firebase Authentication. Google Login fue removido porque el sistema usa usuarios internos con formato `nombre@prode.local`.
 
 Flujo:
 
@@ -151,7 +151,7 @@ Los documentos `users/{uid}` incluyen datos basicos de sesion, proveedores de Au
 - Probar abriendo `index.html` y tambien desde GitHub Pages.
 - No mover `index.html` fuera de la raiz si GitHub Pages publica desde root.
 - Evitar APIs que no funcionen en HTTPS publico o navegadores modernos.
-- Para Google Auth, confirmar que el dominio de GitHub Pages este autorizado en Firebase Authentication.
+- Para Auth, mantener habilitado Email/Password en Firebase Authentication.
 
 ## Estado actual actualizado - 27 de mayo de 2026
 
@@ -163,7 +163,7 @@ Firebase Auth funciona con:
 
 - Registro Email/Password.
 - Login Email/Password.
-- Login con Google por popup.
+- Google Login removido.
 - Logout.
 - `onAuthStateChanged` como fuente de verdad de sesion.
 
@@ -227,32 +227,21 @@ Advertencia: esto mejora la UX y la separacion funcional, pero no es seguridad f
 
 El ranking usa los pronosticos leidos desde la subcoleccion `prode/mundial2026/predictions`. Para no romper datos existentes, tambien contempla el array historico `prode/mundial2026.predictions` si todavia existe.
 
-### Google Login
+### Login
 
-Para que Google Login funcione desde GitHub Pages, Firebase Authentication debe tener autorizados:
+Google Login fue removido. La app usa solamente Firebase Auth Email/Password.
 
-- `diki-lab.github.io`
-- `localhost`
-
-Ruta:
+Usuarios sugeridos:
 
 ```text
-Firebase Console -> Authentication -> Settings -> Authorized domains
+nombre@prode.local
 ```
 
-Tambien debe estar habilitado:
+Admin oficial:
 
 ```text
-Firebase Console -> Authentication -> Sign-in method -> Google
+dmcfarlane@prode.local
 ```
-
-Si falta el dominio, Firebase devuelve:
-
-```text
-auth/unauthorized-domain
-```
-
-La UI muestra un mensaje especifico y la consola deja una explicacion con la ruta de configuracion.
 
 ### Backups
 

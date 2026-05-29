@@ -32,7 +32,7 @@ Actualmente el proyecto funciona principalmente desde `index.html`, con persiste
 - Se agrego Firebase Authentication.
 - Se reemplazo el login local hardcodeado por login con email y contrasena.
 - Se agrego registro de usuarios con nombre visible, email y contrasena.
-- Se agrego login con Google mediante popup, sujeto a que el proveedor Google este habilitado en Firebase Console.
+- Se removio el login con Google. El acceso actual usa solamente Firebase Auth Email/Password.
 - Se agrego cierre de sesion con Firebase Auth.
 - Se agrego guardado basico de usuarios en Firestore, coleccion `users`.
 - Se oculto el Prode si no existe una sesion autenticada.
@@ -48,8 +48,6 @@ Funciones usadas:
 - `getAuth(app)`
 - `createUserWithEmailAndPassword`
 - `signInWithEmailAndPassword`
-- `signInWithPopup`
-- `GoogleAuthProvider`
 - `updateProfile`
 - `onAuthStateChanged`
 - `signOut`
@@ -108,12 +106,7 @@ Al registrar un usuario:
 3. Se guarda el usuario en Firestore en `users/{uid}`.
 4. El usuario entra al Prode si la autenticacion fue correcta.
 
-El login con Google:
-
-1. Abre un popup con `signInWithPopup`.
-2. Firebase completa la sesion si Google esta habilitado.
-3. Se guarda el usuario en `users/{uid}`.
-4. El usuario entra al Prode.
+El login con Google fue removido para evitar confusion con usuarios internos `nombre@prode.local`.
 
 ## Archivos tocados
 
@@ -131,11 +124,9 @@ El login con Google:
 ## Proximos pasos inmediatos
 
 - Activar Email/Password en Firebase Authentication.
-- Activar Google en Firebase Authentication si se quiere usar ese acceso.
 - Revisar y publicar reglas de Firestore seguras.
 - Probar registro real desde GitHub Pages.
 - Probar login real desde GitHub Pages.
-- Probar login con Google desde GitHub Pages y confirmar dominio autorizado.
 - Confirmar que `prode/mundial2026` conserva datos existentes.
 - Separar datos por usuario en Firestore para evitar pisado de datos.
 - Definir un sistema de admin seguro, idealmente con custom claims o un documento de roles.
@@ -241,29 +232,20 @@ Tambien mantiene compatibilidad con el array historico `prode/mundial2026.predic
 
 La vista admin muestra los pronosticos consolidados en modo solo lectura para evitar borrar o pisar datos de otros usuarios desde una implementacion parcial.
 
-### Google Login
+### Login
 
-Se agrego manejo especifico para:
+Google Login fue removido. El sistema usa solamente Firebase Auth con Email/Password.
+
+Usuarios sugeridos:
 
 ```text
-auth/unauthorized-domain
+nombre@prode.local
 ```
 
-Si aparece ese error, hay que configurar dominios autorizados en Firebase Console:
+Admin oficial:
 
 ```text
-Authentication -> Settings -> Authorized domains
-```
-
-Dominios requeridos:
-
-- `diki-lab.github.io`
-- `localhost`
-
-Tambien debe estar habilitado el proveedor Google:
-
-```text
-Authentication -> Sign-in method -> Google
+dmcfarlane@prode.local
 ```
 
 ### Seguridad pendiente

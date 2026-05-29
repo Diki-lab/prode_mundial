@@ -15,10 +15,8 @@
 ## Prioridad alta
 
 - Activar Email/Password en Firebase Authentication.
-- Activar Google en Firebase Authentication y autorizar el dominio de GitHub Pages.
 - Publicar reglas de Firestore que exijan usuario autenticado.
 - Probar registro, login y logout desde GitHub Pages.
-- Probar login con Google desde GitHub Pages.
 - Verificar que `prode/mundial2026` no pierda datos existentes.
 - Validar en produccion el guardado de pronosticos por usuario en `prode/mundial2026/predictions/{uid}`.
 - Implementar reglas Firestore o Firebase custom claims para proteger el rol admin.
@@ -105,8 +103,7 @@
 - Rol admin funcional por email oficial.
 - Funcion frontend `isCurrentUserAdmin()`.
 - Visualizacion de rol actual en la UI.
-- Mensaje especifico para `auth/unauthorized-domain` en Google Login.
-- Documentacion de dominios autorizados para Google Login.
+- Google Login removido: el sistema usa solamente Email/Password.
 
 ### Admin oficial
 
@@ -130,22 +127,25 @@ La comparacion admin debe hacerse siempre con email autenticado normalizado medi
 
 ### Configuracion pendiente en Firebase Console
 
-Habilitar Google Provider:
+Mantener habilitado Email/Password:
 
 ```text
-Authentication -> Sign-in method -> Google
+Authentication -> Sign-in method -> Email/Password
 ```
 
-Autorizar dominios:
+Google Provider no se usa en esta app.
+
+Usuarios sugeridos:
 
 ```text
-Authentication -> Settings -> Authorized domains
+nombre@prode.local
 ```
 
-Agregar:
+Admin oficial:
 
-- `diki-lab.github.io`
-- `localhost`
+```text
+dmcfarlane@prode.local
+```
 
 ### Pendiente para seguridad real
 

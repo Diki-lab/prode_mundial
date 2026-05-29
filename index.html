@@ -231,18 +231,6 @@
       gap: 10px;
     }
 
-    .auth-google-btn {
-      width: 100%;
-      border: 1px solid #d7dee8;
-      background: #ffffff;
-      color: #172033;
-      padding: 13px 18px;
-      border-radius: 14px;
-      cursor: pointer;
-      font-weight: 900;
-      box-shadow: 0 8px 18px rgba(13, 71, 161, .10);
-    }
-
     .auth-status {
       color: #172033;
       font-weight: 800;
@@ -1004,7 +992,6 @@
       <div class="auth-actions">
         <button id="loginSubmitBtn" class="primary" style="width:100%;" onclick="loginApp()">Ingresar</button>
         <button id="registerSubmitBtn" class="primary" style="width:100%;display:none" onclick="registerApp()">Crear cuenta</button>
-        <button id="googleLoginBtn" class="auth-google-btn" onclick="loginWithGoogle()">Ingresar con Google</button>
         <button id="authModeBtn" class="warning" style="width:100%;" onclick="toggleAuthMode()">Registrarme</button>
       </div>
 
@@ -1339,7 +1326,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
-    import { getAuth, GoogleAuthProvider, createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
+    import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, getDocs, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
 
     const firebaseConfig = {
@@ -1354,7 +1341,6 @@
 
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
-    const googleProvider = new GoogleAuthProvider();
     const db = getFirestore(app);
     const prodeDocRef = doc(db, "prode", "mundial2026");
     const predictionsCollectionRef = collection(db, "prode", "mundial2026", "predictions");
@@ -1457,15 +1443,6 @@
           await saveUserProfile(credential.user);
         } catch (error) {
           console.warn("Sesion iniciada, pero no se pudo guardar users/{uid}:", error);
-        }
-        return credential.user;
-      },
-      async loginWithGoogle() {
-        const credential = await signInWithPopup(auth, googleProvider);
-        try {
-          await saveUserProfile(credential.user);
-        } catch (error) {
-          console.warn("Sesion con Google iniciada, pero no se pudo guardar users/{uid}:", error);
         }
         return credential.user;
       },
@@ -1762,13 +1739,6 @@
 
     function getAuthErrorMessage(error) {
       const code = error?.code || '';
-      if (code === 'auth/unauthorized-domain') {
-        console.warn(
-          'Google Login bloqueado: el dominio actual no esta autorizado en Firebase Authentication.',
-          'Agrega diki-lab.github.io y localhost en Firebase Console > Authentication > Settings > Authorized domains.',
-          error
-        );
-      }
       const messages = {
         'auth/email-already-in-use': 'Ese email ya tiene una cuenta. Probá iniciar sesión.',
         'auth/invalid-email': 'El email no tiene un formato válido.',
@@ -1776,11 +1746,7 @@
         'auth/user-not-found': 'No existe una cuenta con ese email.',
         'auth/wrong-password': 'La contraseña es incorrecta.',
         'auth/weak-password': 'La contraseña debe tener al menos 6 caracteres.',
-        'auth/popup-closed-by-user': 'Se cerró la ventana de Google antes de completar el ingreso.',
-        'auth/cancelled-popup-request': 'Ya hay una ventana de Google abierta.',
-        'auth/popup-blocked': 'El navegador bloqueó la ventana de Google. Permití popups para este sitio.',
-        'auth/operation-not-allowed': 'Este método de acceso no está habilitado en Firebase Console.',
-        'auth/unauthorized-domain': 'Este dominio no está autorizado en Firebase Authentication.'
+        'auth/operation-not-allowed': 'El acceso con email y contraseña no está habilitado en Firebase Console.'
       };
 
       return messages[code] || 'No se pudo completar la operación. Revisá los datos e intentá nuevamente.';
@@ -1798,7 +1764,7 @@
       authActionLoading = isLoading;
 
       const status = document.getElementById('authStatus');
-      const buttons = ['loginSubmitBtn', 'registerSubmitBtn', 'googleLoginBtn', 'authModeBtn']
+      const buttons = ['loginSubmitBtn', 'registerSubmitBtn', 'authModeBtn']
         .map(id => document.getElementById(id))
         .filter(Boolean);
 
@@ -2346,27 +2312,6 @@
       } catch (error) {
         console.warn('No se pudo registrar:', error);
         showAuthError(getAuthErrorMessage(error));
-        setAuthLoading(false);
-      }
-    }
-
-    async function loginWithGoogle() {
-      if (authActionLoading) return;
-      clearAuthError();
-
-      if (!window.prodeFirebase) {
-        showAuthError('Firebase todavía se está cargando');
-        return;
-      }
-
-      try {
-        setAuthLoading(true, 'Abriendo Google...');
-        await window.prodeFirebase.loginWithGoogle();
-      } catch (error) {
-        console.warn('No se pudo iniciar sesión con Google:', error);
-        showAuthError(error?.code === 'auth/unauthorized-domain'
-          ? 'Este dominio no esta autorizado para ingresar con Google. Agrega diki-lab.github.io y localhost en Firebase Console > Authentication > Settings > Authorized domains.'
-          : getAuthErrorMessage(error));
         setAuthLoading(false);
       }
     }
