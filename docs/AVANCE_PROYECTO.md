@@ -603,3 +603,66 @@ Estado:
 
 - Dia 6 queda como `COMPLETADO ✅`.
 - No se avanza al Dia 7.
+
+## Actualizacion 4 de junio de 2026 - Dia 7 Publicacion Final
+
+Se ejecuto solamente el Dia 7 del roadmap Codex. No se agregaron
+funcionalidades nuevas y no se modifico `index.html`.
+
+Publicacion:
+
+- URL publicada validada: `https://diki-lab.github.io/prode_mundial/`.
+- URL principal GitHub Pages: HTTP 200 OK.
+- `logo_titulo.png`: HTTP 200 OK.
+- `banner-mundial-2026.png`: HTTP 200 OK.
+- `img/estadio_fondo.jpg`: HTTP 200 OK.
+- La pagina publicada contiene configuracion Firebase del proyecto
+  `prode-mundial-2026-5b2d9`.
+- La pagina publicada contiene la pantalla de acceso con Firebase
+  Authentication.
+- La pagina publicada contiene reglas CSS responsive agregadas en Dia 6.
+
+Validacion tecnica:
+
+- `index.html` es la unica entrada publica necesaria.
+- Las rutas de imagenes son relativas y existen en el repo.
+- Sintaxis del script clasico embebido en `index.html`: OK.
+- Balance de llaves CSS: OK.
+- Tests logicos embebidos en `runTests()`: OK.
+- Registro/login real de usuario comun temporal contra Firebase Auth: OK.
+- Lectura real de `prode/mundial2026`: OK.
+- Escritura real de `users/{uid}`: OK.
+- Escritura real de `prode/mundial2026/predictions/{uid}`: OK.
+- Intento de escritura admin con usuario comun rechazado por Firestore con HTTP
+  403: OK.
+
+Usuario temporal usado:
+
+```text
+codex-dia7-1780599024870@prode.local
+```
+
+Checklist operativo definido:
+
+- Confirmar URL publicada antes de compartir.
+- Confirmar Email/Password habilitado en Firebase Authentication.
+- Confirmar reglas Firestore publicadas.
+- Compartir formato sugerido `nombre@prode.local`.
+- Verificar que cada participante pueda guardar al menos un pronostico.
+- Cerrar pronosticos desde admin antes del primer partido.
+- Cargar resultados desde admin al terminar partidos.
+- Revisar Ranking y Tabla de Grupos despues de cargar resultados.
+
+Riesgos:
+
+- El usuario temporal creado para validar Dia 7 puede quedar en Firebase Auth y
+  `users/{uid}` porque el cliente no puede borrar usuarios de Auth ni documentos
+  `users`.
+- Storage para avatars sigue diferido por plan Firebase.
+- Una mejora futura de seguridad seria custom claims o roles administrados fuera
+  del frontend.
+
+Estado:
+
+- Dia 7 queda como `COMPLETADO ✅`.
+- Publicacion final: `OK ✅`.

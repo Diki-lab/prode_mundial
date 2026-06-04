@@ -154,6 +154,38 @@ Los documentos `users/{uid}` incluyen datos basicos de sesion, proveedores de Au
 - Evitar APIs que no funcionen en HTTPS publico o navegadores modernos.
 - Para Auth, mantener habilitado Email/Password en Firebase Authentication.
 
+## Publicacion final
+
+URL publicada:
+
+```text
+https://diki-lab.github.io/prode_mundial/
+```
+
+Estado al 4 de junio de 2026:
+
+- GitHub Pages responde HTTP 200 OK.
+- `index.html` sigue siendo la unica entrada publica necesaria.
+- Las imagenes principales responden correctamente desde GitHub Pages:
+  `logo_titulo.png`, `banner-mundial-2026.png` e `img/estadio_fondo.jpg`.
+- Firebase usa el proyecto `prode-mundial-2026-5b2d9`.
+- Email/Password esta validado con registro/login real de usuario temporal.
+- Firestore esta validado con lectura del torneo, guardado de perfil y guardado
+  de pronostico por UID.
+- Las reglas rechazan escritura admin desde usuario comun.
+
+Checklist operativo recomendado:
+
+- Confirmar que la URL publicada abre antes de compartirla.
+- Confirmar que Email/Password sigue habilitado en Firebase Authentication.
+- Confirmar que reglas Firestore siguen publicadas.
+- Usar emails internos con formato `nombre@prode.local`.
+- Mantener como admin oficial a `dmcfarlane@prode.local`.
+- Antes del primer partido, cerrar pronosticos desde el usuario admin.
+- Cargar resultados reales desde admin al terminar cada partido.
+- Revisar Ranking y Tabla de Grupos despues de cargar resultados.
+- Usar Git como backup antes de cambios posteriores.
+
 ## Estado actual actualizado - 27 de mayo de 2026
 
 La app sigue siendo una web estatica en `index.html`. No se convirtio en PWA, no se agrego framework y no se agrego build step.

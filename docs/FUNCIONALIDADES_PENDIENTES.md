@@ -15,10 +15,11 @@
 ## Prioridad alta
 
 - Activar Email/Password en Firebase Authentication.
+- Publicacion final en GitHub Pages. COMPLETADO en Dia 7: `https://diki-lab.github.io/prode_mundial/` responde HTTP 200 OK.
 - Publicar reglas de Firestore que exijan usuario autenticado. COMPLETADO: `firestore.rules` fue compilado y desplegado correctamente.
 - Publicar reglas de Storage para avatars. DIFERIDO: Firebase Storage requiere upgrade de plan y no es critico para el MVP.
 - Probar registro, login y logout desde GitHub Pages. COMPLETADO para login/logout en Dia 5 con validacion navegador; registro real contra Firebase validado con usuarios comunes temporales.
-- Verificar que `prode/mundial2026` no pierda datos existentes.
+- Verificar que `prode/mundial2026` no pierda datos existentes. COMPLETADO en Dia 7 con lectura real del documento publicado.
 - Validar en produccion el guardado de pronosticos por usuario en `prode/mundial2026/predictions/{uid}`. COMPLETADO en Dia 5: escritura real por UID validada con dos usuarios comunes temporales y usuario comun validado en navegador.
 - Implementar reglas Firestore o Firebase custom claims para proteger el rol admin.
 - Limitar escritura de resultados reales solo a administradores.
