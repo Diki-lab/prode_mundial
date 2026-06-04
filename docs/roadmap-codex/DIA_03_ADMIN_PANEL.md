@@ -70,6 +70,8 @@ La operacion diaria del Prode queda concentrada en un panel admin entendible y m
 - Se agrego estado de identidad admin con email y rol.
 - Se agrego acceso rapido desde Admin para cargar resultados en Fixture.
 - Se mantuvieron controles separados para bloqueos y jugadores.
+- Bugfix: los controles de abrir/cerrar pronosticos y resultados se duplican en Fixture para que el admin pueda desbloquear resultados desde la pantalla donde carga marcadores.
+- Bugfix: los textos de los botones quedaron como `Abrir/Cerrar pronosticos` y `Abrir/Cerrar resultados`.
 - Se agrego confirmacion antes de borrar jugadores.
 - Se agrego validacion basica contra duplicados de jugadores por espacios y mayusculas/minusculas.
 - La funcion `deletePrediction()` ya no borra pronosticos desde la vista admin parcial; informa que los pronosticos consolidados son solo lectura.

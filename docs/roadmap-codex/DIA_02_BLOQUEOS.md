@@ -70,6 +70,8 @@ El cierre del Prode es confiable y no depende de recordar manualmente dejar de c
 - Los inputs de resultados quedan deshabilitados cuando `isResultLocked` esta activo.
 - Se agregaron mensajes visibles de estado en Fixture, Pronosticos y Administracion.
 - Se agregaron controles admin para abrir/cerrar pronosticos y bloquear/desbloquear resultados.
+- Bugfix: los controles admin para abrir/cerrar pronosticos y resultados tambien se muestran en Fixture, junto al estado de resultados.
+- Bugfix: los botones usan textos claros `Abrir/Cerrar pronosticos` y `Abrir/Cerrar resultados`.
 - Se agregaron helpers testeables: `isPredictionEditingBlocked()`, `isResultEditingBlocked()`, `getPredictionLockText()`, `getResultLockText()` y `renderLockStatuses()`.
 - Se agregaron asserts al bloque `runTests()` para validar logica de bloqueos.
 

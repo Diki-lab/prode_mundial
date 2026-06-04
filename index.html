@@ -1263,6 +1263,11 @@
         <h2>⚽ Fixture</h2>
         <p class="muted">Cargá el resultado real cuando termine cada partido. Los puntos se calculan solos.</p>
         <p id="resultLockStatus" class="lock-status"></p>
+        <div class="admin-lock-controls admin-only">
+          <button class="warning" data-lock-action="predictions" onclick="togglePredictionLock()">Cerrar pronósticos</button>
+          <button class="warning" data-lock-action="results" onclick="toggleResultLock()">Cerrar resultados</button>
+          <button class="primary" onclick="showTab('jugadores')">Panel Admin</button>
+        </div>
         <div class="grid">
           <div>
             <label for="filterDate">Filtrar por fecha</label>
@@ -1392,8 +1397,8 @@
         <p id="adminIdentityStatus" class="muted"></p>
         <p id="adminLockStatus" class="muted"></p>
         <div class="admin-lock-controls">
-          <button class="warning" id="togglePredictionLockBtn" onclick="togglePredictionLock()">Cerrar pronósticos</button>
-          <button class="warning" id="toggleResultLockBtn" onclick="toggleResultLock()">Bloquear resultados</button>
+          <button class="warning" id="togglePredictionLockBtn" data-lock-action="predictions" onclick="togglePredictionLock()">Cerrar pronósticos</button>
+          <button class="warning" id="toggleResultLockBtn" data-lock-action="results" onclick="toggleResultLock()">Cerrar resultados</button>
           <button class="primary" onclick="showTab('fixture')">Cargar resultados</button>
         </div>
       </div>
@@ -2080,8 +2085,6 @@
       const adminIdentityStatus = document.getElementById('adminIdentityStatus');
       const adminLockStatus = document.getElementById('adminLockStatus');
       const savePredictionBtn = document.getElementById('savePredictionBtn');
-      const togglePredictionLockBtn = document.getElementById('togglePredictionLockBtn');
-      const toggleResultLockBtn = document.getElementById('toggleResultLockBtn');
       const predictionInputs = ['playerSelect', 'matchSelect', 'predHome', 'predAway'];
 
       if (predictionLockStatus) {
@@ -2114,13 +2117,15 @@
         savePredictionBtn.innerText = arePredictionsLocked ? 'Pronósticos cerrados' : 'Guardar pronóstico';
       }
 
-      if (togglePredictionLockBtn) {
-        togglePredictionLockBtn.innerText = arePredictionsLocked ? 'Abrir pronósticos' : 'Cerrar pronósticos';
-      }
+      document.querySelectorAll('[data-lock-action="predictions"]').forEach(button => {
+        button.innerText = arePredictionsLocked ? 'Abrir pronósticos' : 'Cerrar pronósticos';
+        button.title = arePredictionsLocked ? 'Permitir carga de pronósticos' : 'Cerrar carga de pronósticos';
+      });
 
-      if (toggleResultLockBtn) {
-        toggleResultLockBtn.innerText = isResultLocked ? 'Desbloquear resultados' : 'Bloquear resultados';
-      }
+      document.querySelectorAll('[data-lock-action="results"]').forEach(button => {
+        button.innerText = isResultLocked ? 'Abrir resultados' : 'Cerrar resultados';
+        button.title = isResultLocked ? 'Permitir carga de resultados' : 'Cerrar carga de resultados';
+      });
     }
 
     function getAuthErrorMessage(error) {
@@ -3294,6 +3299,7 @@
       if (!isAdmin) return;
       isResultLocked = !isResultLocked;
       saveAll();
+      alert(isResultLocked ? 'Resultados cerrados por el admin.' : 'Resultados abiertos por el admin.');
       renderAll();
     }
 

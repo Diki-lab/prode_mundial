@@ -412,6 +412,12 @@ Pruebas reales reportadas:
 - Admin puede cargar resultados si estan abiertos.
 - No hubo errores visibles en consola.
 
+Bugfix posterior:
+
+- Se agregaron controles visibles en Fixture para que el admin pueda abrir/cerrar pronosticos y abrir/cerrar resultados desde la misma pantalla donde carga marcadores.
+- Se unificaron textos de botones como `Abrir/Cerrar pronosticos` y `Abrir/Cerrar resultados`.
+- `toggleResultLock()` ahora muestra confirmacion del nuevo estado luego de cambiar resultados.
+
 ## Actualizacion 3 de junio de 2026 - Dia 3 Admin Panel
 
 Se ejecuto el Dia 3 del roadmap Codex.
@@ -422,6 +428,7 @@ Cambios en `index.html`:
 - Se bloqueo `showTab('jugadores')` para usuarios no admin.
 - Se agrego estado visible de identidad admin con email y rol.
 - Se agrego acceso rapido desde Admin hacia Fixture para cargar resultados.
+- Se agregaron controles de bloqueo tambien en Fixture para evitar que el admin quede sin forma visible de abrir resultados bloqueados.
 - Se agrego confirmacion antes de borrar jugadores.
 - Se agrego validacion basica contra duplicados de jugadores por espacios y mayusculas/minusculas.
 - Se reforzo que los pronosticos consolidados en la vista admin sean solo lectura.
