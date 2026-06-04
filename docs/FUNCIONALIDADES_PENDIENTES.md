@@ -15,12 +15,15 @@
 ## Prioridad alta
 
 - Activar Email/Password en Firebase Authentication.
-- Publicar reglas de Firestore que exijan usuario autenticado.
+- Publicar reglas de Firestore que exijan usuario autenticado. COMPLETADO: `firestore.rules` fue compilado y desplegado correctamente.
+- Publicar reglas de Storage para avatars. DIFERIDO: Firebase Storage requiere upgrade de plan y no es critico para el MVP.
 - Probar registro, login y logout desde GitHub Pages.
 - Verificar que `prode/mundial2026` no pierda datos existentes.
 - Validar en produccion el guardado de pronosticos por usuario en `prode/mundial2026/predictions/{uid}`.
 - Implementar reglas Firestore o Firebase custom claims para proteger el rol admin.
 - Limitar escritura de resultados reales solo a administradores.
+- Implementar bloqueo real de pronosticos. COMPLETADO en `index.html`, pendiente prueba manual final en navegador.
+- Implementar bloqueo real de resultados. COMPLETADO en `index.html`, pendiente prueba manual final en navegador.
 
 ## Prioridad media
 
@@ -64,10 +67,10 @@
 
 ## Mejoras del panel admin
 
-- Crear una vista admin dedicada.
-- Separar gestion de jugadores, resultados y bloqueo de pronosticos.
+- Crear una vista admin dedicada. COMPLETADO parcialmente en la seccion Admin actual.
+- Separar gestion de jugadores, resultados y bloqueo de pronosticos. COMPLETADO para controles MVP.
 - Mostrar claramente que el admin actual es visual/local hasta que existan reglas y roles reales.
-- Agregar confirmaciones antes de borrar jugadores o pronosticos.
+- Agregar confirmaciones antes de borrar jugadores o pronosticos. COMPLETADO para jugadores; pronosticos consolidados quedan solo lectura.
 - Agregar filtros para encontrar pronosticos por usuario o partido.
 - Mostrar ultimas acciones administrativas.
 - Permitir editar datos del fixture con validaciones.
@@ -76,11 +79,11 @@
 ## Mejoras para pronosticos
 
 - Bloquear pronosticos por fecha/hora de partido.
-- Permitir editar pronostico solo antes del bloqueo.
-- Mostrar progreso de pronosticos cargados por usuario.
+- Permitir editar pronostico solo antes del bloqueo. COMPLETADO para bloqueo global `arePredictionsLocked`.
+- Mostrar progreso de pronosticos cargados por usuario. COMPLETADO para progreso `cargados/total`.
 - Agregar vista "mis pronosticos".
 - Separar pronosticos en Firestore por usuario y partido.
-- Agregar validaciones para resultados negativos o campos incompletos.
+- Agregar validaciones para resultados negativos o campos incompletos. COMPLETADO para carga de pronosticos.
 - Evitar que un usuario pueda cargar pronosticos por otro usuario.
 
 ## Mejoras para ranking
@@ -92,6 +95,7 @@
 - Agregar exportacion en CSV.
 - Agregar filtros por usuario.
 - Mejorar presentacion visual de posiciones.
+- Evitar duplicacion entre predicciones legacy y subcoleccion. COMPLETADO: subcoleccion como fuente principal, legacy como fallback.
 
 ## Estado actualizado - 27 de mayo de 2026
 

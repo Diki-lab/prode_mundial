@@ -322,3 +322,184 @@ Para probar el podio:
 2. Abrir `Inicio`.
 3. Confirmar que se muestran hasta 3 jugadores con avatar/foto, nombre y puntos.
 4. Comparar contra la pantalla `Ranking`.
+
+## Actualizacion 3 de junio de 2026 - Dia 1 Seguridad Firebase
+
+Se ejecuto el Dia 1 del roadmap Codex a nivel repositorio.
+
+Archivos agregados:
+
+- `firestore.rules`
+- `storage.rules`
+
+Cambios funcionales minimos:
+
+- `index.html` ya no intenta guardar `prode/mundial2026` cuando un usuario comun se agrega localmente a la lista de jugadores al iniciar sesion.
+- Si `prode/mundial2026` no existe, solo el admin puede inicializarlo desde la app.
+
+Reglas Firestore versionadas:
+
+- Usuarios autenticados pueden leer `prode/mundial2026`.
+- Solo `dmcfarlane@prode.local` puede crear o actualizar `prode/mundial2026`.
+- Usuarios autenticados pueden leer perfiles y predicciones.
+- Cada usuario solo puede crear o actualizar `prode/mundial2026/predictions/{uid}` cuando `{uid}` coincide con `request.auth.uid`.
+- Los usuarios pueden escribir su propio `users/{uid}` con rol coherente con el email autenticado.
+
+Reglas Storage versionadas:
+
+- Usuarios autenticados pueden leer avatars.
+- Cada usuario solo puede crear, actualizar o borrar `users/{uid}/avatar` cuando `{uid}` coincide con `request.auth.uid`.
+- La subida queda limitada a imagenes menores a 2 MB.
+
+Estado:
+
+- Dia 1 fue validado y marcado como `COMPLETADO`.
+- `firestore.rules` fue compilado y desplegado correctamente en Firebase.
+- `firebase.json` y `.firebaserc` fueron creados.
+- El proyecto quedo asociado a `prode-mundial-2026-5b2d9`.
+- Storage queda diferido porque Firebase Storage requiere upgrade de plan y no es critico para el MVP.
+
+## Actualizacion 3 de junio de 2026 - Dia 2 Bloqueos
+
+Se ejecuto el Dia 2 del roadmap Codex.
+
+Cambios en `index.html`:
+
+- Se agrego bloqueo real de pronosticos en `savePrediction()`.
+- Se agrego bloqueo real de borrado de pronosticos en `deletePrediction()`.
+- Se agrego bloqueo real de resultados en `updateResult()`.
+- Cuando `arePredictionsLocked` esta activo, los inputs y el boton de pronosticos quedan deshabilitados.
+- Cuando `isResultLocked` esta activo, los inputs de resultados quedan deshabilitados.
+- Se agregaron mensajes visibles de estado en Fixture, Pronosticos y Administracion.
+- Se agregaron controles admin para abrir/cerrar pronosticos y bloquear/desbloquear resultados.
+- Se agregaron tests logicos embebidos para helpers de bloqueo.
+
+Funciones nuevas:
+
+- `isPredictionEditingBlocked()`
+- `isResultEditingBlocked()`
+- `getPredictionLockText()`
+- `getResultLockText()`
+- `renderLockStatuses()`
+
+Funciones modificadas:
+
+- `updatePredictionUserStatus()`
+- `renderFixture()`
+- `updateResult()`
+- `savePrediction()`
+- `deletePrediction()`
+- `togglePredictionLock()`
+- `renderAll()`
+- `runTests()`
+
+Validacion:
+
+- Sintaxis de scripts embebidos en `index.html`: OK.
+- Tests logicos de bloqueo agregados a `runTests()`: OK a nivel sintaxis/logica local.
+
+Pendiente operativo:
+
+- Ejecutar pruebas manuales en navegador con usuario comun y admin para confirmar persistencia real de los flags en Firestore.
+
+Pruebas reales reportadas:
+
+- Usuario comun no puede guardar pronosticos cuando estan bloqueados.
+- Usuario comun puede guardar pronosticos cuando estan abiertos.
+- Admin puede abrir/cerrar pronosticos.
+- Admin puede abrir/cerrar resultados.
+- Admin no puede cargar resultados si estan bloqueados.
+- Admin puede cargar resultados si estan abiertos.
+- No hubo errores visibles en consola.
+
+## Actualizacion 3 de junio de 2026 - Dia 3 Admin Panel
+
+Se ejecuto el Dia 3 del roadmap Codex.
+
+Cambios en `index.html`:
+
+- Se oculto el acceso Admin del header para usuarios comunes.
+- Se bloqueo `showTab('jugadores')` para usuarios no admin.
+- Se agrego estado visible de identidad admin con email y rol.
+- Se agrego acceso rapido desde Admin hacia Fixture para cargar resultados.
+- Se agrego confirmacion antes de borrar jugadores.
+- Se agrego validacion basica contra duplicados de jugadores por espacios y mayusculas/minusculas.
+- Se reforzo que los pronosticos consolidados en la vista admin sean solo lectura.
+
+Funciones nuevas:
+
+- `normalizePlayerName()`
+- `playerExists()`
+
+Funciones modificadas:
+
+- `showTab()`
+- `renderLockStatuses()`
+- `updateAdminUI()`
+- `deletePrediction()`
+- `deletePlayer()`
+- `addPlayer()`
+- `runTests()`
+
+Validacion:
+
+- Sintaxis de scripts embebidos en `index.html`: OK.
+- Tests logicos de normalizacion/deteccion de duplicados agregados a `runTests()`.
+
+Pendiente operativo:
+
+- Ejecutar pruebas manuales en navegador con usuario comun y admin para confirmar visibilidad del panel, agregado de jugador, duplicados y confirmacion de borrado.
+
+Pruebas reales reportadas:
+
+- Usuario comun no ve acceso Admin.
+- Usuario comun no puede entrar a jugadores/admin.
+- Admin ve panel admin.
+- Admin ve email/rol.
+- Admin tiene acceso a carga de resultados.
+- Agregar jugador duplicado muestra aviso.
+- Borrar jugador pide confirmacion.
+- Pronosticos consolidados quedan solo lectura.
+
+## Actualizacion 3 de junio de 2026 - Dia 4 Ranking y Pronosticos
+
+Se ejecuto el Dia 4 del roadmap Codex.
+
+Cambios en `index.html`:
+
+- Se agrego deduplicacion de pronosticos por jugador y partido.
+- El ranking usa como fuente principal la subcoleccion `prode/mundial2026/predictions`.
+- El array legacy `prode/mundial2026.predictions` queda solo como fallback si no hay documentos en la subcoleccion.
+- Se mantiene fallback local si no hay subcoleccion ni legacy.
+- Se mejoro la validacion de inputs para evitar guardar campos vacios como cero.
+- Se agrego progreso visible en la pantalla de pronosticos.
+- El perfil muestra `Mis pronosticos` como progreso `cargados/total`.
+- La vista admin muestra cantidad consolidada de pronosticos unicos.
+
+Funciones nuevas:
+
+- `getPredictionKey()`
+- `dedupePredictionList()`
+- `getPredictionDocsList()`
+- `getRankingPredictionSource()`
+- `getPredictionProgress()`
+
+Funciones modificadas:
+
+- `updatePredictionUserStatus()`
+- `applyProfile()`
+- `loadCloudData()`
+- `saveCurrentUserPredictions()`
+- `savePrediction()`
+- `renderPredictions()`
+- `getRankingTotals()`
+- `runTests()`
+
+Validacion:
+
+- Sintaxis de scripts embebidos en `index.html`: OK.
+- Tests logicos de deduplicacion, prioridad de subcoleccion y progreso agregados a `runTests()`.
+
+Pendiente operativo:
+
+- Ejecutar pruebas manuales en navegador con al menos dos usuarios para confirmar escritura por UID, ranking consolidado y ausencia de duplicados.

@@ -1,0 +1,84 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdminEmail() {
+      return signedIn()
+        && request.auth.token.email == "dmcfarlane@prode.local";
+    }
+
+    function expectedRole() {
+      return isAdminEmail() ? "admin" : "user";
+    }
+
+    function expectedIsAdmin() {
+      return isAdminEmail();
+    }
+
+    function validUserProfile(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "displayName",
+          "email",
+          "role",
+          "isAdmin",
+          "providers",
+          "avatarType",
+          "avatarValue",
+          "avatarColor",
+          "photoURL",
+          "createdAt",
+          "updatedAt",
+          "lastLoginAt"
+        ])
+        && (!("uid" in request.resource.data) || request.resource.data.uid == uid)
+        && (!("email" in request.resource.data) || request.resource.data.email == request.auth.token.email)
+        && (!("role" in request.resource.data) || request.resource.data.role == expectedRole())
+        && (!("isAdmin" in request.resource.data) || request.resource.data.isAdmin == expectedIsAdmin());
+    }
+
+    function validPredictionDoc(uid) {
+      return signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly([
+          "uid",
+          "displayName",
+          "email",
+          "predictions",
+          "createdAt",
+          "updatedAt"
+        ])
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.predictions is list;
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create, update: if validUserProfile(uid);
+      allow delete: if false;
+    }
+
+    match /prode/{prodeId} {
+      allow read: if signedIn() && prodeId == "mundial2026";
+      allow create, update: if prodeId == "mundial2026" && isAdminEmail();
+      allow delete: if false;
+
+      match /predictions/{uid} {
+        allow read: if signedIn();
+        allow create, update: if validPredictionDoc(uid);
+        allow delete: if signedIn() && (request.auth.uid == uid || isAdminEmail());
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

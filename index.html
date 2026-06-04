@@ -793,6 +793,34 @@
       font-weight: 900;
     }
 
+    .lock-status {
+      margin: 12px 0 0;
+      padding: 10px 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      background: var(--soft);
+      font-weight: 800;
+    }
+
+    .lock-status.open {
+      color: var(--success-text);
+      background: var(--success-soft);
+      border-color: color-mix(in srgb, var(--success-text) 35%, transparent);
+    }
+
+    .lock-status.closed {
+      color: var(--danger-text);
+      background: var(--danger-soft);
+      border-color: color-mix(in srgb, var(--danger-text) 35%, transparent);
+    }
+
+    .admin-lock-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
     .podium-avatar {
       width: 74px;
       height: 74px;
@@ -1113,7 +1141,7 @@
       <button class="active" onclick="showTab('inicio')">⌂ Inicio</button>
       <button onclick="showTab('perfil')">👤 Mi perfil</button>
       <button onclick="showTab('ranking')">♕ Ranking</button>
-      <button onclick="showTab('jugadores')">♜ Admin</button>
+      <button id="adminNavBtn" onclick="showTab('jugadores')">♜ Admin</button>
     </nav>
 
     <div class="header-user">
@@ -1234,6 +1262,7 @@
       <div class="card">
         <h2>⚽ Fixture</h2>
         <p class="muted">Cargá el resultado real cuando termine cada partido. Los puntos se calculan solos.</p>
+        <p id="resultLockStatus" class="lock-status"></p>
         <div class="grid">
           <div>
             <label for="filterDate">Filtrar por fecha</label>
@@ -1274,6 +1303,7 @@
     <section id="pronosticos" class="tab hidden">
       <div class="card">
         <h2>📝 Cargar pronóstico</h2>
+        <p id="predictionLockStatus" class="lock-status"></p>
         <div class="grid">
           <div>
             <label for="playerSelect">Jugador</label>
@@ -1299,6 +1329,7 @@
 
       <div class="card table-wrap">
         <h2>📋 Pronósticos cargados</h2>
+        <p class="muted" id="myPredictionsProgress"></p>
         <table>
           <thead>
             <tr>
@@ -1356,6 +1387,17 @@
     </section>
 
     <section id="jugadores" class="tab hidden">
+      <div class="card">
+        <h2>⚙️ Administración</h2>
+        <p id="adminIdentityStatus" class="muted"></p>
+        <p id="adminLockStatus" class="muted"></p>
+        <div class="admin-lock-controls">
+          <button class="warning" id="togglePredictionLockBtn" onclick="togglePredictionLock()">Cerrar pronósticos</button>
+          <button class="warning" id="toggleResultLockBtn" onclick="toggleResultLock()">Bloquear resultados</button>
+          <button class="primary" onclick="showTab('fixture')">Cargar resultados</button>
+        </div>
+      </div>
+
       <div class="card">
         <h2>👥 Jugadores</h2>
         <div class="grid">
@@ -1915,8 +1957,81 @@
         .filter(Boolean);
     }
 
+    function getPredictionKey(prediction) {
+      const playerKey = normalizePlayerName(prediction?.player || '');
+      return `${playerKey}|${Number(prediction?.matchId)}`;
+    }
+
+    function dedupePredictionList(list) {
+      const byPlayerAndMatch = new Map();
+      normalizePredictionList(list).forEach(prediction => {
+        byPlayerAndMatch.set(getPredictionKey(prediction), prediction);
+      });
+      return [...byPlayerAndMatch.values()];
+    }
+
+    function getPredictionDocsList(predictionDocs = []) {
+      if (!Array.isArray(predictionDocs)) return [];
+      return predictionDocs.flatMap(item =>
+        normalizePredictionList(item.predictions, item.displayName || item.email)
+      );
+    }
+
+    function getRankingPredictionSource(predictionDocs = [], legacyPredictions = [], fallbackPredictions = []) {
+      const subcollectionPredictions = dedupePredictionList(getPredictionDocsList(predictionDocs));
+      if (subcollectionPredictions.length) return subcollectionPredictions;
+
+      const legacyList = dedupePredictionList(legacyPredictions);
+      if (legacyList.length) return legacyList;
+
+      return dedupePredictionList(fallbackPredictions);
+    }
+
     function getCurrentUserLabel() {
       return currentProfileName || currentFirebaseUser?.email || 'usuario';
+    }
+
+    function isPredictionEditingBlocked() {
+      return arePredictionsLocked;
+    }
+
+    function isResultEditingBlocked() {
+      return isResultLocked;
+    }
+
+    function getPredictionLockText() {
+      return arePredictionsLocked
+        ? 'Pronósticos cerrados: ya no se pueden cargar ni modificar.'
+        : 'Pronósticos abiertos: podés cargar o modificar tus resultados.';
+    }
+
+    function getResultLockText() {
+      return isResultLocked
+        ? 'Resultados bloqueados: no se pueden editar hasta desbloquearlos.'
+        : 'Resultados abiertos: el admin puede cargar marcadores reales.';
+    }
+
+    function normalizePlayerName(name) {
+      return String(name || '')
+        .trim()
+        .replace(/\s+/g, ' ')
+        .toLocaleLowerCase('es');
+    }
+
+    function playerExists(name) {
+      const normalized = normalizePlayerName(name);
+      return players.some(player => normalizePlayerName(player) === normalized);
+    }
+
+    function getPredictionProgress(player = currentProfileName) {
+      const playerPredictions = dedupePredictionList(
+        predictions.filter(prediction => prediction.player === player)
+      );
+      return {
+        done: playerPredictions.length,
+        total: matches.length,
+        percent: matches.length ? Math.round((playerPredictions.length / matches.length) * 100) : 0
+      };
     }
 
     function setPredictionStatus(message, isError = false) {
@@ -1948,9 +2063,63 @@
       }
 
       if (status) {
-        status.innerText = currentFirebaseUser
-          ? `Pronosticos cargados para: ${getCurrentUserLabel()} (${getCurrentUserRole()})`
-          : 'Inicia sesion para cargar tus pronosticos.';
+        const progress = getPredictionProgress();
+        if (!currentFirebaseUser) {
+          status.innerText = 'Inicia sesion para cargar tus pronosticos.';
+        } else if (arePredictionsLocked) {
+          status.innerText = `Pronosticos cerrados para: ${getCurrentUserLabel()} (${getCurrentUserRole()}) | ${progress.done}/${progress.total} cargados`;
+        } else {
+          status.innerText = `Pronosticos cargados para: ${getCurrentUserLabel()} (${getCurrentUserRole()}) | ${progress.done}/${progress.total} (${progress.percent}%)`;
+        }
+      }
+    }
+
+    function renderLockStatuses() {
+      const predictionLockStatus = document.getElementById('predictionLockStatus');
+      const resultLockStatus = document.getElementById('resultLockStatus');
+      const adminIdentityStatus = document.getElementById('adminIdentityStatus');
+      const adminLockStatus = document.getElementById('adminLockStatus');
+      const savePredictionBtn = document.getElementById('savePredictionBtn');
+      const togglePredictionLockBtn = document.getElementById('togglePredictionLockBtn');
+      const toggleResultLockBtn = document.getElementById('toggleResultLockBtn');
+      const predictionInputs = ['playerSelect', 'matchSelect', 'predHome', 'predAway'];
+
+      if (predictionLockStatus) {
+        predictionLockStatus.innerText = getPredictionLockText();
+        predictionLockStatus.className = `lock-status ${arePredictionsLocked ? 'closed' : 'open'}`;
+      }
+
+      if (resultLockStatus) {
+        resultLockStatus.innerText = getResultLockText();
+        resultLockStatus.className = `lock-status ${isResultLocked ? 'closed' : 'open'}`;
+      }
+
+      if (adminIdentityStatus) {
+        adminIdentityStatus.innerText = isAdmin
+          ? `Admin autenticado: ${currentFirebaseUser?.email || ADMIN_EMAIL} | Rol: ${getCurrentUserRole()}`
+          : '';
+      }
+
+      if (adminLockStatus) {
+        adminLockStatus.innerText = `${getPredictionLockText()} ${getResultLockText()}`;
+      }
+
+      predictionInputs.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) element.disabled = arePredictionsLocked;
+      });
+
+      if (savePredictionBtn) {
+        savePredictionBtn.disabled = arePredictionsLocked;
+        savePredictionBtn.innerText = arePredictionsLocked ? 'Pronósticos cerrados' : 'Guardar pronóstico';
+      }
+
+      if (togglePredictionLockBtn) {
+        togglePredictionLockBtn.innerText = arePredictionsLocked ? 'Abrir pronósticos' : 'Cerrar pronósticos';
+      }
+
+      if (toggleResultLockBtn) {
+        toggleResultLockBtn.innerText = isResultLocked ? 'Desbloquear resultados' : 'Bloquear resultados';
       }
     }
 
@@ -2175,8 +2344,8 @@
         }
 
         if (myPredictionsCount) {
-          const totalPredictions = predictions.filter(p => p.player === currentProfileName).length;
-          myPredictionsCount.innerText = totalPredictions;
+          const progress = getPredictionProgress();
+          myPredictionsCount.innerText = `${progress.done}/${progress.total}`;
         }
       }
     }
@@ -2477,12 +2646,9 @@
             predictionDocs.forEach(item => rememberUserProfile(item));
             const userProfiles = await window.prodeFirebase.loadUserProfiles();
             userProfiles.forEach(profile => rememberUserProfile(profile));
-            rankingPredictions = [
-              ...legacyPredictions,
-              ...predictionDocs.flatMap(item => normalizePredictionList(item.predictions, item.displayName || item.email))
-            ];
+            rankingPredictions = getRankingPredictionSource(predictionDocs, legacyPredictions, predictions);
           } catch (error) {
-            rankingPredictions = [...legacyPredictions, ...predictions];
+            rankingPredictions = getRankingPredictionSource([], legacyPredictions, predictions);
             console.warn(getFirestoreErrorMessage(error, 'cargar ranking'), error);
           }
 
@@ -2491,25 +2657,31 @@
           localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
           localStorage.setItem(STORAGE_KEYS.resultLock, JSON.stringify(isResultLocked));
           localStorage.setItem(STORAGE_KEYS.predictionLock, JSON.stringify(arePredictionsLocked));
-          if (addedCurrentPlayer) {
+          if (addedCurrentPlayer && isAdmin) {
             await window.prodeFirebase.saveData({
               players,
               matches,
               isResultLocked,
               arePredictionsLocked
             });
+          } else if (addedCurrentPlayer) {
+            console.log('Jugador agregado solo localmente; los usuarios comunes no escriben datos generales.');
           }
           console.log('☁️ Datos cargados desde Firestore: prode/mundial2026');
         } else {
           console.log('☁️ No existe prode/mundial2026; inicializando con datos locales');
-          await window.prodeFirebase.saveData({
-            players,
-            matches,
-            isResultLocked,
-            arePredictionsLocked
-          });
+          if (isAdmin) {
+            await window.prodeFirebase.saveData({
+              players,
+              matches,
+              isResultLocked,
+              arePredictionsLocked
+            });
+            console.log('☁️ Firestore inicializado con datos locales: prode/mundial2026');
+          } else {
+            console.warn('Solo el admin puede inicializar prode/mundial2026 en Firestore.');
+          }
           rankingPredictions = [...predictions];
-          console.log('☁️ Firestore inicializado con datos locales: prode/mundial2026');
         }
         renderAll();
       } catch (error) {
@@ -2557,12 +2729,9 @@
           predictionDocs.forEach(item => rememberUserProfile(item));
           const userProfiles = await window.prodeFirebase.loadUserProfiles();
           userProfiles.forEach(profile => rememberUserProfile(profile));
-          rankingPredictions = [
-            ...legacyRankingPredictions,
-            ...predictionDocs.flatMap(item => normalizePredictionList(item.predictions, item.displayName || item.email))
-          ];
+          rankingPredictions = getRankingPredictionSource(predictionDocs, legacyRankingPredictions, predictions);
         } catch (error) {
-          rankingPredictions = [...legacyRankingPredictions, ...predictions];
+          rankingPredictions = getRankingPredictionSource([], legacyRankingPredictions, predictions);
           console.warn(getFirestoreErrorMessage(error, 'actualizar ranking'), error);
         }
         if (!rankingPredictions.length) rankingPredictions = [...predictions];
@@ -2608,6 +2777,10 @@
 
     function showTab(id, button) {
       if (!requireAuth(`abrir pestaña ${id}`)) return;
+      if (id === 'jugadores' && !isAdmin) {
+        alert('Panel admin disponible solo para administradores.');
+        return;
+      }
       document.querySelectorAll('.tab').forEach(tab => tab.classList.add('hidden'));
       document.getElementById(id).classList.remove('hidden');
       document.querySelectorAll('.tab-btn').forEach(tabButton => tabButton.classList.remove('active'));
@@ -2742,8 +2915,8 @@
             <td>${escapeHtml(match.date)}</td>
             <td><span class="group-badge">${escapeHtml(match.group)}</span></td>
             <td>${renderTeam(match.home)}</td>
-            <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.homeGoals)}" ${!isAdmin ? 'disabled' : ''} onchange="updateResult(${match.id}, 'homeGoals', this.value)"></td>
-            <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.awayGoals)}" ${!isAdmin ? 'disabled' : ''} onchange="updateResult(${match.id}, 'awayGoals', this.value)"></td>
+            <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.homeGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'homeGoals', this.value)"></td>
+            <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.awayGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'awayGoals', this.value)"></td>
             <td>${renderTeam(match.away)}</td>
           </tr>
         `)
@@ -2755,6 +2928,11 @@
     function updateResult(id, field, value) {
       if (!requireAuth('actualizar resultado')) return;
       if (!isAdmin) return;
+      if (isResultEditingBlocked()) {
+        alert('Resultados bloqueados. Desbloquealos desde Admin para editar marcadores.');
+        renderAll();
+        return;
+      }
 
       const match = matches.find(item => item.id === id);
       if (!match || !['homeGoals', 'awayGoals'].includes(field)) return;
@@ -2767,6 +2945,7 @@
     function updateAdminUI() {
       const addPlayerBtn = document.getElementById('addPlayerBtn');
       const adminBtnTop = document.getElementById('adminBtnTop');
+      const adminNavBtn = document.getElementById('adminNavBtn');
       const playersTabBtn = [...document.querySelectorAll('.tab-btn')].find(btn => btn.innerText.includes('Jugadores'));
       const adminOnlyCards = document.querySelectorAll('.admin-only');
 
@@ -2778,6 +2957,10 @@
         adminBtnTop.innerText = '👑 Admin ON';
         adminBtnTop.classList.toggle('admin-on', isAdmin);
         adminBtnTop.style.display = isAdmin ? 'inline-flex' : 'none';
+      }
+
+      if (adminNavBtn) {
+        adminNavBtn.style.display = isAdmin ? 'inline-block' : 'none';
       }
 
       if (playersTabBtn) {
@@ -2803,12 +2986,23 @@
 
     async function savePrediction() {
       if (!requireAuth('guardar pronóstico')) return;
+      if (isPredictionEditingBlocked()) {
+        setPredictionStatus('Pronósticos cerrados: no se pueden cargar ni modificar.', true);
+        renderLockStatuses();
+        return;
+      }
       const player = currentProfileName;
-      const matchId = Number(document.getElementById('matchSelect').value);
-      const home = Number(document.getElementById('predHome').value);
-      const away = Number(document.getElementById('predAway').value);
+      const matchIdRaw = document.getElementById('matchSelect').value;
+      const homeRaw = document.getElementById('predHome').value;
+      const awayRaw = document.getElementById('predAway').value;
+      const matchId = Number(matchIdRaw);
+      const home = Number(homeRaw);
+      const away = Number(awayRaw);
 
-      if (!player || Number.isNaN(matchId) || Number.isNaN(home) || Number.isNaN(away) || home < 0 || away < 0) return;
+      if (!player || !matchIdRaw || homeRaw === '' || awayRaw === '' || Number.isNaN(matchId) || Number.isNaN(home) || Number.isNaN(away) || home < 0 || away < 0) {
+        setPredictionStatus('Completá partido y goles con números válidos.', true);
+        return;
+      }
 
       const existing = predictions.find(prediction => prediction.player === player && prediction.matchId === matchId);
       if (existing) {
@@ -2851,18 +3045,28 @@
           </tr>
         `;
       }).join('');
+
+      const progress = document.getElementById('myPredictionsProgress');
+      if (progress) {
+        const currentProgress = getPredictionProgress();
+        progress.innerText = isAdmin
+          ? `Vista consolidada: ${dedupePredictionList(visiblePredictions).length} pronosticos únicos.`
+          : `Mis pronosticos: ${currentProgress.done}/${currentProgress.total} partidos (${currentProgress.percent}%).`;
+      }
     }
 
     function deletePrediction(index) {
       if (!requireAuth('borrar pronóstico')) return;
-      if (!isAdmin) return;
-      predictions.splice(index, 1);
-      saveAll();
-      renderAll();
+      if (isPredictionEditingBlocked()) {
+        setPredictionStatus('Pronósticos cerrados: no se pueden borrar.', true);
+        renderLockStatuses();
+        return;
+      }
+      setPredictionStatus('Los pronosticos consolidados son solo lectura desde Admin.', true);
     }
 
     function getRankingTotals() {
-      const sourcePredictions = rankingPredictions.length ? rankingPredictions : predictions;
+      const sourcePredictions = dedupePredictionList(rankingPredictions.length ? rankingPredictions : predictions);
       const rankingPlayers = [...new Set([
         ...players,
         ...sourcePredictions.map(prediction => prediction.player).filter(Boolean)
@@ -3062,6 +3266,7 @@
       if (!requireAuth('borrar jugador')) return;
       if (!isAdmin) return;
       const name = players[index];
+      if (!window.confirm(`¿Borrar jugador "${name}"? Esta accion tambien quita sus pronosticos locales visibles en esta sesion.`)) return;
       players.splice(index, 1);
       predictions = predictions.filter(p => p.player !== name);
       saveAll();
@@ -3072,9 +3277,13 @@
       if (!requireAuth('agregar jugador')) return;
       if (!isAdmin) return;
       const input = document.getElementById('newPlayer');
-      const name = input.value.trim();
+      const name = (input.value || '').trim().replace(/\s+/g, ' ');
       if (!name) return;
-      if (!players.includes(name)) players.push(name);
+      if (playerExists(name)) {
+        alert('Ese jugador ya existe.');
+        return;
+      }
+      players.push(name);
       input.value = '';
       saveAll();
       renderAll();
@@ -3093,6 +3302,7 @@
       if (!isAdmin) return;
       arePredictionsLocked = !arePredictionsLocked;
       saveAll();
+      setPredictionStatus(arePredictionsLocked ? 'Pronósticos cerrados por el admin.' : 'Pronósticos abiertos por el admin.');
       renderAll();
     }
 
@@ -3190,6 +3400,7 @@
       updateAdminUI();
       renderFixture();
       renderSelectors();
+      renderLockStatuses();
       renderPredictions();
       renderRanking();
       renderHomePodium();
@@ -3256,6 +3467,27 @@
       assertTest('empate correcto suma 1 punto', pointsFor({ matchId: 1, home: 1, away: 1 }, [{ id: 1, homeGoals: 2, awayGoals: 2 }]) === 1);
       assertTest('resultado incorrecto suma 0 puntos', pointsFor({ matchId: 1, home: 0, away: 1 }, testMatches) === 0);
       assertTest('sin resultado real suma 0 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, [{ id: 1, homeGoals: '', awayGoals: '' }]) === 0);
+      const previousPredictionLock = arePredictionsLocked;
+      const previousResultLock = isResultLocked;
+      arePredictionsLocked = true;
+      isResultLocked = true;
+      assertTest('bloqueo de pronosticos activo bloquea edicion', isPredictionEditingBlocked() === true);
+      assertTest('bloqueo de resultados activo bloquea edicion', isResultEditingBlocked() === true);
+      arePredictionsLocked = false;
+      isResultLocked = false;
+      assertTest('bloqueo de pronosticos inactivo permite edicion', isPredictionEditingBlocked() === false);
+      assertTest('bloqueo de resultados inactivo permite edicion', isResultEditingBlocked() === false);
+      arePredictionsLocked = previousPredictionLock;
+      isResultLocked = previousResultLock;
+      assertTest('normalizacion de jugador limpia espacios', normalizePlayerName('  Juan   Perez ') === 'juan perez');
+      assertTest('playerExists detecta duplicado simple', playerExists(defaultPlayers[0].toUpperCase()) === true);
+      const duplicatePredictions = [
+        { player: 'Ana', matchId: 1, home: 1, away: 0 },
+        { player: 'Ana', matchId: 1, home: 2, away: 0 }
+      ];
+      assertTest('dedupePredictionList evita duplicados por jugador y partido', dedupePredictionList(duplicatePredictions).length === 1);
+      assertTest('fuente ranking usa subcoleccion como prioridad', getRankingPredictionSource([{ displayName: 'Ana', predictions: duplicatePredictions }], [{ player: 'Ana', matchId: 1, home: 0, away: 0 }]).length === 1);
+      assertTest('progreso de pronosticos calcula total', getPredictionProgress(currentProfileName).total === matches.length);
     }
 
     try {
