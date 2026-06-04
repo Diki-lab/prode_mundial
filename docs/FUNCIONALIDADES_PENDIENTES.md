@@ -17,13 +17,13 @@
 - Activar Email/Password en Firebase Authentication.
 - Publicar reglas de Firestore que exijan usuario autenticado. COMPLETADO: `firestore.rules` fue compilado y desplegado correctamente.
 - Publicar reglas de Storage para avatars. DIFERIDO: Firebase Storage requiere upgrade de plan y no es critico para el MVP.
-- Probar registro, login y logout desde GitHub Pages.
+- Probar registro, login y logout desde GitHub Pages. COMPLETADO para login/logout en Dia 5 con validacion navegador; registro real contra Firebase validado con usuarios comunes temporales.
 - Verificar que `prode/mundial2026` no pierda datos existentes.
-- Validar en produccion el guardado de pronosticos por usuario en `prode/mundial2026/predictions/{uid}`.
+- Validar en produccion el guardado de pronosticos por usuario en `prode/mundial2026/predictions/{uid}`. COMPLETADO en Dia 5: escritura real por UID validada con dos usuarios comunes temporales y usuario comun validado en navegador.
 - Implementar reglas Firestore o Firebase custom claims para proteger el rol admin.
 - Limitar escritura de resultados reales solo a administradores.
-- Implementar bloqueo real de pronosticos. COMPLETADO en `index.html`, pendiente prueba manual final en navegador.
-- Implementar bloqueo real de resultados. COMPLETADO en `index.html`, pendiente prueba manual final en navegador.
+- Implementar bloqueo real de pronosticos. COMPLETADO en `index.html` y validado en navegador en Dia 5.
+- Implementar bloqueo real de resultados. COMPLETADO en `index.html` y validado en navegador en Dia 5.
 
 ## Prioridad media
 
@@ -58,12 +58,12 @@
 
 ## Mejoras de diseno mobile
 
-- Revisar tablas grandes en pantallas chicas.
-- Mejorar navegacion por tabs en mobile.
-- Ajustar botones del header para evitar saltos o superposiciones.
-- Mejorar pantalla de login/registro en celulares bajos.
-- Revisar inputs numericos de resultados y pronosticos.
-- Agregar estados de foco y tactiles mas claros.
+- Revisar tablas grandes en pantallas chicas. COMPLETADO en Dia 6 con scroll horizontal y anchos minimos responsive.
+- Mejorar navegacion por tabs en mobile. COMPLETADO en Dia 6 con tabs horizontales desplazables.
+- Ajustar botones del header para evitar saltos o superposiciones. COMPLETADO en Dia 6 con grillas responsive para header.
+- Mejorar pantalla de login/registro en celulares bajos. COMPLETADO en Dia 6 con scroll vertical y titulo compacto.
+- Revisar inputs numericos de resultados y pronosticos. COMPLETADO en Dia 6 con controles tactiles mas grandes.
+- Agregar estados de foco y tactiles mas claros. COMPLETADO parcialmente en Dia 6 con mayor area tactil; los estados visuales de foco se mantienen segun estilos existentes.
 
 ## Mejoras del panel admin
 

@@ -510,3 +510,96 @@ Validacion:
 Pendiente operativo:
 
 - Ejecutar pruebas manuales en navegador con al menos dos usuarios para confirmar escritura por UID, ranking consolidado y ausencia de duplicados.
+
+## Actualizacion 4 de junio de 2026 - Dia 5 Test Flujo Completo
+
+Se ejecuto solamente el Dia 5 del roadmap Codex. No se implementaron
+funcionalidades nuevas, no se modifico diseno y no se avanzo al Dia 6.
+
+Validacion local:
+
+- Sintaxis del script clasico embebido en `index.html`: OK.
+- Tests logicos embebidos en `runTests()`: OK.
+
+Validacion real contra Firebase con usuarios comunes temporales:
+
+- Registro real de dos usuarios comunes: OK.
+- Login real de ambos usuarios comunes: OK.
+- Escritura de perfil en `users/{uid}`: OK.
+- Lectura de `prode/mundial2026` con usuario autenticado: OK.
+- Escritura de pronosticos separados por UID en
+  `prode/mundial2026/predictions/{uid}`: OK.
+- Lectura de la subcoleccion `predictions` para ranking consolidado: OK.
+- Verificacion de que ambos usuarios aparecen como fuente de ranking: OK.
+- Intento de escritura admin sobre `prode/mundial2026` con usuario comun:
+  rechazado por Firestore con HTTP 403.
+- Se limpiaron los documentos de pronosticos temporales creados durante la
+  prueba.
+
+Usuarios temporales usados:
+
+```text
+codex-dia5-a-1780596617541@prode.local
+codex-dia5-b-1780596617541@prode.local
+```
+
+Validacion manual en navegador reportada:
+
+- Login admin: OK.
+- Admin ON visible: OK.
+- Abrir/Cerrar pronosticos: OK.
+- Abrir/Cerrar resultados: OK.
+- Carga de resultado: OK.
+- Ranking actualiza: OK.
+- Logout: OK.
+- Usuario comun no ve Admin: OK.
+- Usuario comun guarda pronosticos cuando estan abiertos: OK.
+- Usuario comun no puede guardar pronosticos cuando estan cerrados: OK.
+
+Estado:
+
+- Dia 5 queda como `COMPLETADO ✅`.
+- Validacion navegador: `OK ✅`.
+- No se encontraron bugs bloqueantes en las pruebas ejecutadas.
+- `index.html` no fue modificado.
+- No se avanza al Dia 6.
+
+## Actualizacion 4 de junio de 2026 - Dia 6 Mobile UI
+
+Se ejecuto solamente el Dia 6 del roadmap Codex. No se modifico logica
+Firebase, ranking, pronosticos ni roles admin. No se avanzo al Dia 7.
+
+Cambios en `index.html`:
+
+- Se reforzo el header para tablet con areas de grilla separadas para marca,
+  usuario y navegacion.
+- Se mejoro el header mobile para evitar superposicion de logo, usuario,
+  acciones superiores y accesos principales.
+- Se mantuvo visible la informacion del usuario en mobile con truncado seguro
+  para nombres, email y rol.
+- Se cambio la navegacion secundaria mobile a tabs horizontales desplazables.
+- Se aumento el alto minimo y tamano tactil de botones principales.
+- Se ajustaron tablas para scroll horizontal y anchos minimos mas razonables.
+- Se apilaron controles admin en mobile.
+- Se ajusto login/registro para pantallas chicas con scroll vertical y titulo
+  mas compacto.
+- Se agregaron reglas especificas para pantallas de hasta 420px.
+
+Validacion:
+
+- Sintaxis del script clasico embebido en `index.html`: OK.
+- Balance de llaves CSS: OK.
+- Tests logicos embebidos en `runTests()`: OK.
+- Revision estatica de reglas para 360px, 768px y desktop: OK.
+
+Riesgos:
+
+- No hubo navegador interactivo disponible para capturas reales a 360px, 768px y
+  desktop, por lo que puede requerir ajuste fino visual posterior.
+- Las tablas siguen usando scroll horizontal en mobile cuando tienen muchas
+  columnas; se mantiene asi para no cambiar estructura ni logica.
+
+Estado:
+
+- Dia 6 queda como `COMPLETADO ✅`.
+- No se avanza al Dia 7.
