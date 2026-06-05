@@ -519,8 +519,16 @@
     }
 
     button.prediction-save-button {
-      background: linear-gradient(135deg, var(--primary), var(--primary-light));
+      background: linear-gradient(135deg, #0d47a1, #1565c0);
+      color: #ffffff;
+      border: 0;
       box-shadow: 0 8px 18px rgba(13, 71, 161, .22);
+    }
+
+    body.dark-theme button.prediction-save-button {
+      background: linear-gradient(135deg, #2563eb, #60a5fa);
+      color: #ffffff;
+      box-shadow: 0 8px 18px rgba(96, 165, 250, .24);
     }
 
     button:disabled,
@@ -1661,16 +1669,16 @@
       </div>
 
       <div class="card table-wrap">
-        <h2>📋 Pronósticos cargados</h2>
+        <h2>📋 Mis pronósticos</h2>
         <p id="predictionLockStatus" class="lock-status"></p>
         <p class="muted" id="myPredictionsProgress"></p>
         <p class="muted" id="predictionUserStatus"></p>
         <p class="muted" id="predictionSaveStatus"></p>
         <div class="grid">
           <div>
-            <label for="predictionFilterDate">Fecha</label>
+            <label for="predictionFilterDate">Fecha/Fase</label>
             <select id="predictionFilterDate" onchange="renderPredictions()">
-              <option value="">Todas las fechas</option>
+              <option value="">Todas las fechas/fases</option>
             </select>
           </div>
           <div>
@@ -1695,6 +1703,26 @@
             </tr>
           </thead>
           <tbody id="predictionsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card table-wrap" id="consolidatedPredictionsCard" style="display:none">
+        <h2>📊 Pronósticos consolidados</h2>
+        <p class="muted" id="consolidatedPredictionsProgress"></p>
+        <table>
+          <thead>
+            <tr>
+              <th>Jugador</th>
+              <th>Fecha/Fase</th>
+              <th>Grupo/Fase</th>
+              <th>Local</th>
+              <th>GL</th>
+              <th>GV</th>
+              <th>Visitante</th>
+              <th>Puntos</th>
+            </tr>
+          </thead>
+          <tbody id="consolidatedPredictionsBody"></tbody>
         </table>
       </div>
     </section>
@@ -2468,11 +2496,11 @@
       }
 
       document.querySelectorAll('[data-prediction-row-input]').forEach(input => {
-        input.disabled = arePredictionsLocked || isAdmin;
+        input.disabled = arePredictionsLocked;
       });
 
       document.querySelectorAll('[data-prediction-row-save]').forEach(button => {
-        button.disabled = arePredictionsLocked || isAdmin;
+        button.disabled = arePredictionsLocked;
         button.innerText = arePredictionsLocked ? 'Cerrado' : 'Guardar';
       });
 
@@ -2532,6 +2560,7 @@
       currentFirebaseUser = user || null;
       isAuthReady = true;
       isAdmin = isCurrentUserAdmin();
+      editingPredictionRows = {};
       if (currentFirebaseUser) {
         console.log("Rol UI Firebase Auth:", {
           authenticatedEmail: currentFirebaseUser.email || "",
@@ -3168,6 +3197,43 @@
       return numberA - numberB || a.localeCompare(b);
     }
 
+    const PREDICTION_STAGE_FILTERS = [
+      'Fecha 1',
+      'Fecha 2',
+      'Fecha 3',
+      '16avos',
+      '8vos',
+      '4tos',
+      'Semifinal',
+      '3° Puesto',
+      'Final'
+    ];
+
+    function getPredictionStageName(match) {
+      const rawText = [
+        match?.group,
+        match?.phase,
+        match?.round,
+        match?.stage
+      ].filter(Boolean).join(' ');
+      const dateName = getFixtureDateName(rawText);
+      if (dateName) return dateName;
+
+      const text = rawText
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+      if (/(16|dieciseisavos|dieciseisavo)/.test(text)) return '16avos';
+      if (/(8|octavos|octavo)/.test(text)) return '8vos';
+      if (/(4|cuartos|cuarto)/.test(text)) return '4tos';
+      if (/semi/.test(text)) return 'Semifinal';
+      if (/(3|tercer|tercero).*(puesto|cuarto)|puesto.*(3|tercer|tercero)/.test(text)) return '3° Puesto';
+      if (/final/.test(text)) return 'Final';
+
+      return '';
+    }
+
     function renderDates() {
       const select = document.getElementById('filterDate');
       const current = select.value;
@@ -3395,7 +3461,6 @@
 
     async function savePredictionRow(matchId) {
       if (!requireAuth('guardar pronostico')) return;
-      if (isAdmin) return;
       if (isPredictionEditingBlocked()) {
         setPredictionStatus('Pronosticos cerrados: no se pueden cargar ni modificar.', true);
         renderLockStatuses();
@@ -3432,7 +3497,7 @@
     }
 
     function editPredictionRow(matchId) {
-      if (isAdmin || arePredictionsLocked) return;
+      if (arePredictionsLocked) return;
       editingPredictionRows[matchId] = true;
       renderPredictions();
     }
@@ -3481,12 +3546,11 @@
 
       const currentDate = dateSelect.value;
       const currentGroup = groupSelect.value;
-      const dates = [...new Set(matches.map(match => getFixtureDateName(match.group)).filter(Boolean))]
-        .sort(sortFixtureDateNames);
+      const dates = PREDICTION_STAGE_FILTERS;
       const groups = [...new Set(matches.map(match => getSimpleGroupName(match.group)).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
 
-      dateSelect.innerHTML = '<option value="">Todas las fechas</option>' + dates
+      dateSelect.innerHTML = '<option value="">Todas las fechas/fases</option>' + dates
         .map(date => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)
         .join('');
       dateSelect.value = dates.includes(currentDate) ? currentDate : '';
@@ -3511,11 +3575,15 @@
         .find(prediction => prediction.matchId === match.id) || null;
     }
 
+    function getPredictionGroupPhaseName(match) {
+      return getSimpleGroupName(match?.group || '') || getPredictionStageName(match);
+    }
+
     function getFilteredPredictionMatches() {
       const filters = getPredictionFilters();
       return matches.filter(match => {
-        const matchDate = getFixtureDateName(match.group);
-        const matchGroup = getSimpleGroupName(match.group);
+        const matchDate = getPredictionStageName(match);
+        const matchGroup = getPredictionGroupPhaseName(match);
         const matchText = `${match.home} ${match.away}`.toLowerCase();
         return (!filters.date || matchDate === filters.date)
           && (!filters.group || matchGroup === filters.group)
@@ -3523,75 +3591,85 @@
       });
     }
 
+    function filterPredictionRowsByCurrentFilters(sourcePredictions) {
+      const filters = getPredictionFilters();
+      return dedupePredictionList(sourcePredictions)
+        .map(prediction => ({ prediction, match: matches.find(item => item.id === prediction.matchId) }))
+        .filter(row => {
+          if (!row.match) return false;
+          const matchDate = getPredictionStageName(row.match);
+          const matchGroup = getPredictionGroupPhaseName(row.match);
+          const matchText = `${row.match.home} ${row.match.away}`.toLowerCase();
+          return (!filters.date || matchDate === filters.date)
+            && (!filters.group || matchGroup === filters.group)
+            && (!filters.query || matchText.includes(filters.query));
+        });
+    }
+
+    function renderConsolidatedPredictions() {
+      const card = document.getElementById('consolidatedPredictionsCard');
+      const body = document.getElementById('consolidatedPredictionsBody');
+      const progress = document.getElementById('consolidatedPredictionsProgress');
+      if (!card || !body) return;
+
+      card.style.display = isAdmin ? '' : 'none';
+      if (!isAdmin) {
+        body.innerHTML = '';
+        if (progress) progress.innerText = '';
+        return;
+      }
+
+      const consolidatedSource = dedupePredictionList([...rankingPredictions, ...predictions]);
+      const rows = filterPredictionRowsByCurrentFilters(consolidatedSource);
+
+      body.innerHTML = rows.map(row => {
+        const { match, prediction } = row;
+        return `
+          <tr>
+            <td>${escapeHtml(prediction?.player || '')}</td>
+            <td>${escapeHtml(getPredictionStageName(match))}</td>
+            <td><span class="group-badge">${escapeHtml(getPredictionGroupPhaseName(match))}</span></td>
+            <td>${renderTeam(match.home)}</td>
+            <td>${escapeHtml(prediction.home)}</td>
+            <td>${escapeHtml(prediction.away)}</td>
+            <td>${renderTeam(match.away)}</td>
+            <td><span class="points-badge">${pointsFor(prediction)}</span></td>
+          </tr>
+        `;
+      }).join('');
+
+      if (progress) {
+        progress.innerText = `Vista consolidada: ${consolidatedSource.length} pronosticos únicos.`;
+      }
+    }
+
     function renderPredictions() {
       renderPredictionFilters();
-      const sourcePredictions = isAdmin ? rankingPredictions : predictions;
       const filteredMatches = getFilteredPredictionMatches();
-      const filters = getPredictionFilters();
       const predictionsHead = document.getElementById('predictionsHead');
 
       if (predictionsHead) {
-        predictionsHead.innerHTML = isAdmin
-          ? `
-            <tr>
-              <th>Jugador</th>
-              <th>Fecha</th>
-              <th>Grupo/Fase</th>
-              <th>Local</th>
-              <th>GL</th>
-              <th>GV</th>
-              <th>Visitante</th>
-              <th>Puntos</th>
-            </tr>
-          `
-          : `
-            <tr>
-              <th>Fecha</th>
-              <th>Grupo/Fase</th>
-              <th>Local</th>
-              <th>GL</th>
-              <th>GV</th>
-              <th>Visitante</th>
-              <th>Puntos</th>
-              <th>Guardar/Accion</th>
-            </tr>
-          `;
+        predictionsHead.innerHTML = `
+          <tr>
+            <th>Fecha/Fase</th>
+            <th>Grupo/Fase</th>
+            <th>Local</th>
+            <th>GL</th>
+            <th>GV</th>
+            <th>Visitante</th>
+            <th>Puntos</th>
+            <th>Guardar/Accion</th>
+          </tr>
+        `;
       }
 
-      const rows = isAdmin
-        ? dedupePredictionList(sourcePredictions)
-          .map(prediction => ({ prediction, match: matches.find(item => item.id === prediction.matchId) }))
-          .filter(row => {
-            if (!row.match) return false;
-            const matchDate = getFixtureDateName(row.match.group);
-            const matchGroup = getSimpleGroupName(row.match.group);
-            const matchText = `${row.match.home} ${row.match.away}`.toLowerCase();
-            return (!filters.date || matchDate === filters.date)
-              && (!filters.group || matchGroup === filters.group)
-              && (!filters.query || matchText.includes(filters.query));
-          })
-        : filteredMatches.map(match => ({ match, prediction: getPredictionForMatch(match, sourcePredictions) }));
+      const rows = filteredMatches.map(match => ({ match, prediction: getPredictionForMatch(match, predictions) }));
 
       document.getElementById('predictionsBody').innerHTML = rows.map(row => {
         const { match, prediction } = row;
         const home = prediction ? prediction.home : '';
         const away = prediction ? prediction.away : '';
         const points = prediction ? pointsFor(prediction) : 0;
-
-        if (isAdmin) {
-          return `
-            <tr>
-              <td>${escapeHtml(prediction?.player || '')}</td>
-              <td>${escapeHtml(getFixtureDateName(match.group))}</td>
-              <td><span class="group-badge">${escapeHtml(getSimpleGroupName(match.group))}</span></td>
-              <td>${renderTeam(match.home)}</td>
-              <td>${escapeHtml(home)}</td>
-              <td>${escapeHtml(away)}</td>
-              <td>${renderTeam(match.away)}</td>
-              <td><span class="points-badge">${points}</span></td>
-            </tr>
-          `;
-        }
 
         const hasPrediction = Boolean(prediction);
         const isEditing = !hasPrediction || editingPredictionRows[match.id];
@@ -3618,8 +3696,8 @@
 
         return `
           <tr>
-            <td>${escapeHtml(getFixtureDateName(match.group))}</td>
-            <td><span class="group-badge">${escapeHtml(getSimpleGroupName(match.group))}</span></td>
+            <td>${escapeHtml(getPredictionStageName(match))}</td>
+            <td><span class="group-badge">${escapeHtml(getPredictionGroupPhaseName(match))}</span></td>
             <td>${renderTeam(match.home)}</td>
             <td>${homeCell}</td>
             <td>${awayCell}</td>
@@ -3633,10 +3711,10 @@
       const progress = document.getElementById('myPredictionsProgress');
       if (progress) {
         const currentProgress = getPredictionProgress();
-        progress.innerText = isAdmin
-          ? `Vista consolidada: ${dedupePredictionList(sourcePredictions).length} pronosticos únicos.`
-          : `Mis pronosticos: ${currentProgress.done}/${currentProgress.total} partidos (${currentProgress.percent}%).`;
+        progress.innerText = `Mis pronosticos: ${currentProgress.done}/${currentProgress.total} partidos (${currentProgress.percent}%).`;
       }
+
+      renderConsolidatedPredictions();
     }
 
     function deletePrediction(index) {
@@ -3709,8 +3787,9 @@
     }
 
     function getSimpleGroupName(text) {
-      const match = text.match(/Grupo ([A-L])/);
-      return match ? `Grupo ${match[1]}` : text;
+      const value = String(text || '');
+      const match = value.match(/Grupo ([A-L])/);
+      return match ? `Grupo ${match[1]}` : value;
     }
 
     function getTeamsByGroup() {
