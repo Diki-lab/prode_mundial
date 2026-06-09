@@ -82,8 +82,9 @@
       border-bottom: 1px solid rgba(255,255,255,.08);
       min-height: 108px;
       display: grid;
-      grid-template-columns: 320px 1fr 260px;
+      grid-template-columns: 1fr;
       align-items: center;
+      justify-items: center;
       gap: 18px;
       box-shadow: 0 10px 35px rgba(0,0,0,.35);
     }
@@ -118,11 +119,6 @@
       right: auto;
     }
 
-    .header-brand {
-      position: relative;
-      z-index: 2;
-    }
-
     .header-nav {
       display: flex;
       justify-content: center;
@@ -132,6 +128,7 @@
       z-index: 2;
       font-weight: 900;
       text-transform: uppercase;
+      justify-self: center;
     }
 
     .header-nav button {
@@ -156,7 +153,10 @@
       align-items: center;
       justify-content: flex-end;
       gap: 12px;
-      position: relative;
+      position: absolute;
+      right: 28px;
+      top: 50%;
+      transform: translateY(-50%);
       z-index: 2;
     }
 
@@ -678,6 +678,35 @@
       min-width: 34px;
     }
 
+    .ranking-player {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .ranking-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: inline-grid;
+      place-items: center;
+      flex: 0 0 auto;
+      overflow: hidden;
+      color: white;
+      font-size: 14px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--primary), var(--secondary));
+      border: 2px solid color-mix(in srgb, var(--primary) 34%, var(--border));
+      box-shadow: 0 8px 18px rgba(15, 23, 42, .13);
+    }
+
+    .ranking-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
     .bracket-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -808,38 +837,101 @@
 
     .home-podium {
       display: grid;
-      grid-template-columns: 1fr 1.15fr 1fr;
-      gap: 16px;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.18fr) minmax(0, 1fr);
+      gap: 18px;
       align-items: end;
-      margin-top: 16px;
+      margin-top: 26px;
+      padding-top: 14px;
+    }
+
+    .home-podium > .muted {
+      grid-column: 1 / -1;
     }
 
     .podium-card {
-      min-height: 210px;
-      border-radius: 22px;
-      padding: 18px;
+      --metal: #facc15;
+      --metal-soft: rgba(250, 204, 21, .18);
+      --podium-height: 74px;
+      --avatar-size: 78px;
+      position: relative;
+      min-height: 260px;
+      border-radius: 20px 20px 12px 12px;
+      padding: 20px 18px calc(var(--podium-height) + 18px);
       display: grid;
       justify-items: center;
       align-content: center;
-      gap: 10px;
+      gap: 11px;
       text-align: center;
-      background: linear-gradient(180deg, var(--card), color-mix(in srgb, var(--soft) 70%, var(--card)));
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 50% 22%, var(--metal-soft), transparent 42%),
+        linear-gradient(180deg, color-mix(in srgb, var(--card) 92%, var(--metal)), var(--card));
+      border: 2px solid var(--metal);
+      box-shadow: 0 22px 42px rgba(15, 23, 42, .16);
+    }
+
+    .podium-card::before,
+    .podium-card::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      pointer-events: none;
+    }
+
+    .podium-card::before {
+      top: 0;
+      height: 5px;
+      background: linear-gradient(90deg, transparent, var(--metal), transparent);
+    }
+
+    .podium-card::after {
+      bottom: 0;
+      height: var(--podium-height);
+      background:
+        linear-gradient(180deg, color-mix(in srgb, var(--metal) 38%, var(--card)), color-mix(in srgb, var(--metal) 18%, var(--soft))),
+        repeating-linear-gradient(90deg, transparent 0 26px, rgba(255,255,255,.18) 26px 27px);
+      border-top: 2px solid color-mix(in srgb, var(--metal) 70%, var(--border));
+      box-shadow: inset 0 14px 24px rgba(255,255,255,.16);
+    }
+
+    .podium-card > * {
+      position: relative;
+      z-index: 1;
     }
 
     .podium-card.first {
-      min-height: 250px;
-      border-color: #facc15;
-      background: linear-gradient(180deg, color-mix(in srgb, #facc15 18%, var(--card)), var(--card));
+      --metal: #facc15;
+      --metal-soft: rgba(250, 204, 21, .24);
+      --podium-height: 104px;
+      --avatar-size: 98px;
+      min-height: 320px;
+      transform: translateY(-12px);
     }
 
-    .podium-card.second { border-color: #94a3b8; }
-    .podium-card.third { border-color: #fb923c; }
+    .podium-card.second {
+      --metal: #94a3b8;
+      --metal-soft: rgba(148, 163, 184, .24);
+      --podium-height: 82px;
+    }
+
+    .podium-card.third {
+      --metal: #b45309;
+      --metal-soft: rgba(180, 83, 9, .22);
+      --podium-height: 66px;
+    }
 
     .podium-rank {
-      font-size: 28px;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      font-size: 24px;
       font-weight: 900;
+      background: color-mix(in srgb, var(--metal) 22%, var(--card));
+      border: 2px solid var(--metal);
+      box-shadow: 0 10px 18px rgba(15, 23, 42, .13);
     }
 
     .lock-status {
@@ -871,8 +963,8 @@
     }
 
     .podium-avatar {
-      width: 74px;
-      height: 74px;
+      width: var(--avatar-size);
+      height: var(--avatar-size);
       border-radius: 50%;
       display: grid;
       place-items: center;
@@ -880,15 +972,13 @@
       font-weight: 900;
       font-size: 28px;
       overflow: hidden;
-      border: 3px solid rgba(255,255,255,.78);
+      border: 4px solid var(--metal);
       box-shadow: 0 12px 26px rgba(0,0,0,.18);
       background: linear-gradient(135deg, var(--primary), var(--secondary));
     }
 
     .podium-card.first .podium-avatar {
-      width: 88px;
-      height: 88px;
-      font-size: 32px;
+      font-size: 34px;
     }
 
     .podium-avatar img {
@@ -901,11 +991,14 @@
       font-size: 18px;
       font-weight: 900;
       color: var(--text);
+      max-width: 100%;
+      overflow-wrap: anywhere;
     }
 
     .podium-points {
-      color: var(--warning-text);
-      background: var(--warning-soft);
+      color: var(--text);
+      background: color-mix(in srgb, var(--metal) 18%, var(--card));
+      border: 1px solid color-mix(in srgb, var(--metal) 62%, var(--border));
       border-radius: 999px;
       padding: 7px 12px;
       font-weight: 900;
@@ -928,15 +1021,11 @@
 
     @media (max-width: 980px) {
       header {
-        grid-template-columns: minmax(190px, 260px) 1fr;
+        grid-template-columns: 1fr auto;
         grid-template-areas:
-          "brand user"
+          ". user"
           "nav nav";
         gap: 14px;
-      }
-
-      .header-brand {
-        grid-area: brand;
       }
 
       .header-nav {
@@ -946,6 +1035,11 @@
 
       .header-user {
         grid-area: user;
+        position: relative;
+        right: auto;
+        top: auto;
+        transform: none;
+        justify-self: end;
       }
 
       .auth-user-email {
@@ -959,12 +1053,23 @@
       .home-podium {
         grid-template-columns: 1fr;
         align-items: stretch;
+        gap: 14px;
       }
 
       .podium-card,
       .podium-card.first {
-        min-height: 190px;
+        min-height: 220px;
+        transform: none;
       }
+
+      .podium-card.first { order: 1; }
+      .podium-card.second { order: 2; }
+      .podium-card.third { order: 3; }
+      .home-podium > .muted { order: 1; }
+    }
+
+    body.dark-theme .podium-card {
+      box-shadow: 0 24px 44px rgba(0,0,0,.34);
     }
 
     @media (max-width: 720px) {
@@ -981,10 +1086,6 @@
 
       .header-user-info {
         display: none;
-      }
-
-      .header-brand {
-        text-align: center;
       }
 
       .header-nav {
@@ -1187,7 +1288,6 @@
         display: grid;
         grid-template-columns: 1fr;
         grid-template-areas:
-          "brand"
           "user"
           "nav";
         gap: 12px;
@@ -1196,11 +1296,6 @@
       .header-user-info {
         display: block;
         min-width: 0;
-      }
-
-      .header-brand img {
-        max-height: 64px !important;
-        margin: 0 auto;
       }
 
       .header-nav {
@@ -1366,7 +1461,13 @@
       .podium-card.first {
         min-height: 170px;
         padding: 16px;
+        transform: none;
       }
+
+      .podium-card.first { order: 1; }
+      .podium-card.second { order: 2; }
+      .podium-card.third { order: 3; }
+      .home-podium > .muted { order: 1; }
 
       #loginScreen {
         align-items: flex-start !important;
@@ -1469,10 +1570,6 @@
     </div>
   </div>
   <header style="display:none">
-    <div class="header-brand">
-      <img src="logo_titulo.png" alt="Prode Mundial 2026" style="max-width:100%;height:auto;max-height:85px;display:block;">
-    </div>
-
     <nav class="header-nav" aria-label="Accesos principales">
       <button class="active" onclick="showTab('inicio')">⌂ Inicio</button>
       <button onclick="showTab('perfil')">👤 Mi perfil</button>
@@ -1831,10 +1928,7 @@
             </div>
             <div class="profile-item">
               <div class="profile-center">👤 Avatar</div>
-              <label for="avatarPhotoInput" style="margin-top:10px">Adjuntar foto</label>
-              <input id="avatarPhotoInput" type="file" accept="image/*" onchange="previewAvatarPhoto(event)">
-              <button class="primary" id="saveAvatarBtn" onclick="saveAvatarSettings()" style="margin-top:10px">Guardar avatar</button>
-              <div class="profile-subtitle" id="avatarStatus">Avatar por defecto</div>
+              <div class="profile-subtitle" id="avatarStatus">Avatar administrado localmente</div>
             </div>
             <div class="profile-item">
               🚪 Cerrar sesión<br>
@@ -1860,7 +1954,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-app.js";
     import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, updateProfile, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-auth.js";
     import { getFirestore, doc, getDoc, setDoc, getDocs, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-firestore.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.13.0/firebase-storage.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyDwxw1RRMscOdwGlACEklGS6RgDPKEondk",
@@ -1875,7 +1968,6 @@
     const app = initializeApp(firebaseConfig);
     const auth = getAuth(app);
     const db = getFirestore(app);
-    const storage = getStorage(app);
     const prodeDocRef = doc(db, "prode", "mundial2026");
     const predictionsCollectionRef = collection(db, "prode", "mundial2026", "predictions");
     const ADMIN_EMAIL = "dmcfarlane@prode.local";
@@ -2008,20 +2100,6 @@
       async saveUserProfile(user) {
         await saveUserProfile(user);
       },
-      async saveUserAvatar(user, avatar) {
-        await setDoc(doc(db, "users", user.uid), {
-          avatarType: avatar.avatarType,
-          avatarValue: avatar.avatarValue,
-          avatarColor: avatar.avatarColor,
-          photoURL: avatar.photoURL || "",
-          updatedAt: serverTimestamp()
-        }, { merge: true });
-      },
-      async uploadUserAvatar(user, file) {
-        const avatarRef = ref(storage, `users/${user.uid}/avatar`);
-        await uploadBytes(avatarRef, file, { contentType: file.type || 'image/jpeg' });
-        return getDownloadURL(avatarRef);
-      }
     };
 
     onAuthStateChanged(auth, async (user) => {
@@ -2185,7 +2263,7 @@
     let currentTheme = localStorage.getItem(STORAGE_KEYS.theme) || 'light';
     let currentProfileName = localStorage.getItem(STORAGE_KEYS.profileName) || '';
     let currentProfilePhoto = localStorage.getItem(STORAGE_KEYS.profilePhoto) || '';
-    let currentUserAvatar = { avatarType: 'initial', avatarValue: '', avatarColor: '#0d47a1', photoURL: '' };
+    let currentUserAvatar = { avatarType: 'initial', avatarValue: '', avatarColor: '#0d47a1', localAvatarPath: '' };
     let pendingAvatarFile = null;
     let pendingAvatarPreviewUrl = '';
     let userProfilesByName = {};
@@ -2197,6 +2275,7 @@
     let rankingPredictions = [];
     let legacyRankingPredictions = [];
     let editingPredictionRows = {};
+    const LOCAL_AVATAR_BASE_PATH = 'img/avatars/';
 
     let isResultLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.resultLock) || 'false');
     let arePredictionsLocked = JSON.parse(localStorage.getItem(STORAGE_KEYS.predictionLock) || 'false');
@@ -2222,6 +2301,24 @@
       return /^#[0-9a-f]{6}$/i.test(color || '') ? color : '#0d47a1';
     }
 
+    function getAvatarSlug(value) {
+      const base = String(value || '').trim().split('@')[0];
+      return base
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, '');
+    }
+
+    function getLocalAvatarPath(value) {
+      const slug = getAvatarSlug(value);
+      return slug ? `${LOCAL_AVATAR_BASE_PATH}${slug}.jpg` : '';
+    }
+
+    function getLocalAvatarPathFromProfile(profile = {}) {
+      return getLocalAvatarPath(profile.email || profile.displayName || profile.player || profile.avatarValue || '');
+    }
+
     function normalizeAvatarSettings(data = {}) {
       const allowedTypes = ['initial', 'emoji', 'color'];
       const avatarType = allowedTypes.includes(data.avatarType) ? data.avatarType : 'initial';
@@ -2230,7 +2327,8 @@
         avatarType,
         avatarValue,
         avatarColor: getValidAvatarColor(data.avatarColor),
-        photoURL: String(data.photoURL || '').trim()
+        photoURL: '',
+        localAvatarPath: String(data.localAvatarPath || '').trim()
       };
     }
 
@@ -2245,18 +2343,30 @@
 
     function renderAvatarElement(element, settings = currentUserAvatar) {
       if (!element) return;
-      const photoURL = settings.photoURL || '';
+      settings = normalizeAvatarSettings(settings);
+      const localAvatarPath = settings.localAvatarPath || '';
+      const fallback = getAvatarDisplayValue(settings);
       element.style.background = getValidAvatarColor(settings.avatarColor);
       element.style.borderColor = 'rgba(255,255,255,.42)';
-      if (photoURL) {
-        element.innerHTML = `<img src="${escapeHtml(photoURL)}" alt="Foto de perfil">`;
+      element.dataset.fallback = fallback;
+      if (localAvatarPath) {
+        element.innerHTML = `<img src="${escapeHtml(localAvatarPath)}" alt="Avatar local" onerror="handleAvatarImageError(this)">`;
       } else {
-        element.textContent = getAvatarDisplayValue(settings);
+        element.textContent = fallback;
       }
     }
 
+    function handleAvatarImageError(image) {
+      const container = image?.parentElement;
+      if (!container) return;
+      container.textContent = container.dataset.fallback || 'ðŸ‘¤';
+    }
+
     function rememberUserProfile(profile = {}) {
-      const settings = normalizeAvatarSettings(profile);
+      const settings = normalizeAvatarSettings({
+        ...profile,
+        localAvatarPath: getLocalAvatarPathFromProfile(profile)
+      });
       const keys = [profile.displayName, profile.email]
         .map(value => String(value || '').trim())
         .filter(Boolean);
@@ -2270,7 +2380,8 @@
       return userProfilesByName[String(player || '').trim().toLowerCase()] || normalizeAvatarSettings({
         avatarType: 'initial',
         avatarValue: getInitials(player || ''),
-        avatarColor: '#0d47a1'
+        avatarColor: '#0d47a1',
+        localAvatarPath: getLocalAvatarPath(player)
       });
     }
 
@@ -2278,8 +2389,8 @@
       const normalized = normalizeAvatarSettings(settings);
       const value = getAvatarDisplayValue(normalized);
       const color = getValidAvatarColor(normalized.avatarColor);
-      if (normalized.photoURL) {
-        return `<div class="${className}" style="background:${escapeHtml(color)}"><img src="${escapeHtml(normalized.photoURL)}" alt="Avatar"></div>`;
+      if (normalized.localAvatarPath) {
+        return `<div class="${className}" data-fallback="${escapeHtml(value)}" style="background:${escapeHtml(color)}"><img src="${escapeHtml(normalized.localAvatarPath)}" alt="Avatar local" onerror="handleAvatarImageError(this)"></div>`;
       }
       return `<div class="${className}" style="background:${escapeHtml(color)}">${escapeHtml(value)}</div>`;
     }
@@ -2580,7 +2691,11 @@
       if (currentFirebaseUser) {
         currentProfileName = getFirebaseDisplayName(currentFirebaseUser);
         localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
-        currentUserAvatar = normalizeAvatarSettings({ photoURL: currentFirebaseUser.photoURL || '' });
+        currentUserAvatar = normalizeAvatarSettings({
+          avatarType: 'initial',
+          avatarValue: getInitials(currentProfileName || currentFirebaseUser.email || ''),
+          localAvatarPath: getLocalAvatarPath(currentFirebaseUser.email || currentProfileName || '')
+        });
         userProfilesByName = {};
         rememberUserProfile({
           displayName: currentProfileName,
@@ -2713,11 +2828,7 @@
       }
 
       if (avatarStatus) {
-        avatarStatus.innerText = pendingAvatarFile
-          ? 'Foto lista para guardar'
-          : currentUserAvatar.avatarValue || currentUserAvatar.photoURL
-          ? 'Avatar personalizado'
-          : 'Avatar por defecto';
+        avatarStatus.innerText = 'Avatar administrado localmente';
       }
 
       if (profileWelcome) {
@@ -2748,17 +2859,16 @@
         avatarType: currentUserAvatar.avatarType || 'initial',
         avatarValue: currentUserAvatar.avatarValue || '',
         avatarColor: currentUserAvatar.avatarColor || '#0d47a1',
-        photoURL: currentUserAvatar.photoURL || currentFirebaseUser?.photoURL || ''
+        localAvatarPath: getLocalAvatarPath(currentFirebaseUser?.email || currentProfileName || '')
       });
     }
 
     function previewAvatarSettings() {
       currentUserAvatar = getAvatarSettingsFromForm();
-      if (pendingAvatarPreviewUrl) currentUserAvatar.photoURL = pendingAvatarPreviewUrl;
       renderAvatarElement(document.getElementById('profileAvatar'));
       renderAvatarElement(document.getElementById('headerUserAvatar'));
       const avatarStatus = document.getElementById('avatarStatus');
-      if (avatarStatus) avatarStatus.innerText = 'Vista previa sin guardar';
+      if (avatarStatus) avatarStatus.innerText = 'Avatar administrado localmente';
     }
 
     async function compressImageFile(file) {
@@ -2790,103 +2900,21 @@
     }
 
     async function previewAvatarPhoto(event) {
-      if (!requireAuth('adjuntar foto')) return;
-      const file = event.target.files && event.target.files[0];
+      if (event?.target) event.target.value = '';
       const avatarStatus = document.getElementById('avatarStatus');
-      if (!file) return;
-
-      if (!file.type.startsWith('image/')) {
-        if (avatarStatus) avatarStatus.innerText = 'Adjunta un archivo de imagen';
-        event.target.value = '';
-        return;
-      }
-
-      try {
-        clearPendingAvatarPhoto();
-        pendingAvatarFile = await compressImageFile(file);
-        pendingAvatarPreviewUrl = URL.createObjectURL(pendingAvatarFile);
-        currentUserAvatar = getAvatarSettingsFromForm();
-        currentUserAvatar.photoURL = pendingAvatarPreviewUrl;
-        renderAvatarElement(document.getElementById('profileAvatar'));
-        renderAvatarElement(document.getElementById('headerUserAvatar'));
-        if (avatarStatus) avatarStatus.innerText = 'Foto lista para guardar';
-      } catch (error) {
-        console.warn('No se pudo preparar la foto:', error);
-        if (avatarStatus) avatarStatus.innerText = 'La imagen es demasiado grande';
-        event.target.value = '';
-        clearPendingAvatarPhoto();
-      }
+      if (avatarStatus) avatarStatus.innerText = 'Avatar administrado localmente';
     }
-
-    function getAvatarUploadErrorMessage(error) {
-      const text = [
-        error?.code,
-        error?.message,
-        error?.name,
-        String(error || '')
-      ].filter(Boolean).join(' ');
-
-      if (text.includes('ERR_CERT_AUTHORITY_INVALID') || text.toLowerCase().includes('certificate')) {
-        return 'Error de certificado/proxy al subir la foto.';
-      }
-
-      return 'No se pudo subir la foto. Revisá conexión, proxy o permisos de Firebase Storage.';
-    }
-
     async function saveAvatarSettings() {
       if (!requireAuth('guardar avatar')) return;
-      if (!window.prodeFirebase?.saveUserAvatar || !currentFirebaseUser) return;
-
       currentUserAvatar = getAvatarSettingsFromForm();
+      rememberUserProfile({
+        displayName: currentProfileName,
+        email: currentFirebaseUser?.email,
+        ...currentUserAvatar
+      });
+      renderAll();
       const avatarStatus = document.getElementById('avatarStatus');
-      const saveAvatarBtn = document.getElementById('saveAvatarBtn');
-      let didSave = false;
-      if (saveAvatarBtn) {
-        saveAvatarBtn.disabled = true;
-        saveAvatarBtn.innerText = 'Guardando...';
-      }
-      if (avatarStatus) avatarStatus.innerText = 'Guardando avatar...';
-
-      try {
-        if (pendingAvatarFile) {
-          currentUserAvatar.photoURL = await window.prodeFirebase.uploadUserAvatar(currentFirebaseUser, pendingAvatarFile);
-          clearPendingAvatarPhoto();
-          const avatarPhotoInput = document.getElementById('avatarPhotoInput');
-          if (avatarPhotoInput) avatarPhotoInput.value = '';
-        }
-
-        if (!currentUserAvatar.photoURL) {
-          if (avatarStatus) avatarStatus.innerText = 'Adjunta una foto antes de guardar';
-          return;
-        }
-
-        await window.prodeFirebase.saveUserAvatar(currentFirebaseUser, currentUserAvatar);
-        rememberUserProfile({
-          displayName: currentProfileName,
-          email: currentFirebaseUser.email,
-          ...currentUserAvatar
-        });
-        didSave = true;
-        renderAll();
-        const updatedStatus = document.getElementById('avatarStatus');
-        if (updatedStatus) updatedStatus.innerText = 'Foto guardada correctamente';
-      } catch (error) {
-        console.warn('No se pudo subir la foto:', error);
-        const updatedStatus = document.getElementById('avatarStatus') || avatarStatus;
-        if (updatedStatus) updatedStatus.innerText = getAvatarUploadErrorMessage(error);
-      } finally {
-        const updatedButton = document.getElementById('saveAvatarBtn');
-        if (updatedButton) {
-          updatedButton.disabled = false;
-          updatedButton.innerText = 'Guardar avatar';
-        }
-        const updatedStatus = document.getElementById('avatarStatus');
-        if (updatedStatus && updatedStatus.innerText === 'Guardando avatar...') {
-          updatedStatus.innerText = didSave
-            ? 'Foto guardada correctamente'
-            : 'No se pudo subir la foto. Revisá conexión, proxy o permisos de Firebase Storage.';
-        }
-      }
+      if (avatarStatus) avatarStatus.innerText = 'Avatar administrado localmente';
     }
 
     function saveProfilePhoto(event) {
@@ -2928,6 +2956,7 @@
 
       currentProfileName = name;
       localStorage.setItem(STORAGE_KEYS.profileName, currentProfileName);
+      currentUserAvatar = getAvatarSettingsFromForm();
 
       if (!players.includes(name)) {
         players.push(name);
@@ -2997,7 +3026,7 @@
           avatarType: userProfile?.avatarType,
           avatarValue: userProfile?.avatarValue,
           avatarColor: userProfile?.avatarColor,
-          photoURL: userProfile?.photoURL || currentFirebaseUser.photoURL || ''
+          localAvatarPath: getLocalAvatarPath(userProfile?.email || currentFirebaseUser.email || currentProfileName || '')
         });
         rememberUserProfile({
           displayName: userProfile?.displayName || currentProfileName,
@@ -3751,7 +3780,12 @@
         return `
           <tr>
             <td><span class="rank-medal">${medal}</span></td>
-            <td><strong>${escapeHtml(row.player)}</strong></td>
+            <td>
+              <span class="ranking-player">
+                ${buildAvatarMarkup(getAvatarForPlayer(row.player), 'ranking-avatar')}
+                <strong>${escapeHtml(row.player)}</strong>
+              </span>
+            </td>
             <td><span class="points-badge">${row.points}</span></td>
           </tr>
         `;
@@ -4131,6 +4165,51 @@
       assertTest('empate correcto suma 1 punto', pointsFor({ matchId: 1, home: 1, away: 1 }, [{ id: 1, homeGoals: 2, awayGoals: 2 }]) === 1);
       assertTest('resultado incorrecto suma 0 puntos', pointsFor({ matchId: 1, home: 0, away: 1 }, testMatches) === 0);
       assertTest('sin resultado real suma 0 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, [{ id: 1, homeGoals: '', awayGoals: '' }]) === 0);
+      const previousPlayers = players;
+      const previousPredictions = predictions;
+      const previousRankingPredictions = rankingPredictions;
+      const previousMatches = matches;
+      const previousUserProfilesByName = userProfilesByName;
+      try {
+        userProfilesByName = {};
+        rememberUserProfile({ displayName: 'Ana', email: 'asinderman@prode.local' });
+        players = ['Carla', 'Ana', 'Bruno'];
+        predictions = [];
+        matches = [
+          { id: 9001, homeGoals: 2, awayGoals: 1 },
+          { id: 9002, homeGoals: 0, awayGoals: 0 }
+        ];
+        rankingPredictions = [
+          { player: 'Ana', matchId: 9001, home: 2, away: 1 },
+          { player: 'Ana', matchId: 9002, home: 1, away: 1 },
+          { player: 'Bruno', matchId: 9001, home: 2, away: 1 },
+          { player: 'Carla', matchId: 9002, home: 1, away: 1 }
+        ];
+        const testRankingTotals = getRankingTotals();
+        assertTest('ranking ordena por puntos descendente', testRankingTotals.map(row => row.player).join(',') === 'Ana,Bruno,Carla');
+        assertTest('top 3 conserva puntos correctos', testRankingTotals.map(row => row.points).join(',') === '4,3,1');
+        renderHomePodium();
+        const testPodiumCards = [...document.querySelectorAll('#homePodium .podium-card')];
+        assertTest('podio visual ubica segundo primero tercero', testPodiumCards.map(card => card.classList.contains('second') ? 'second' : card.classList.contains('first') ? 'first' : 'third').join(',') === 'second,first,third');
+        assertTest('podio visual muestra el campeon al centro', testPodiumCards[1]?.textContent.includes('Ana') === true);
+        assertTest('asinderman carga avatar local', getAvatarForPlayer('Ana').localAvatarPath === 'img/avatars/asinderman.jpg');
+        assertTest('podio muestra avatar local existente', document.getElementById('homePodium').innerHTML.includes('img/avatars/asinderman.jpg'));
+        renderRanking();
+        assertTest('ranking muestra avatar local existente', document.getElementById('rankingBody').innerHTML.includes('img/avatars/asinderman.jpg'));
+      } finally {
+        players = previousPlayers;
+        predictions = previousPredictions;
+        rankingPredictions = previousRankingPredictions;
+        matches = previousMatches;
+        userProfilesByName = previousUserProfilesByName;
+      }
+      assertTest('avatar sin foto usa iniciales del jugador', getAvatarDisplayValue(getAvatarForPlayer('Juan Perez')) === 'JP');
+      renderAvatarElement(document.getElementById('profileAvatar'), normalizeAvatarSettings({
+        avatarType: 'initial',
+        avatarValue: 'AS',
+        localAvatarPath: 'img/avatars/asinderman.jpg'
+      }));
+      assertTest('perfil muestra avatar local existente', document.getElementById('profileAvatar').innerHTML.includes('img/avatars/asinderman.jpg'));
       const previousPredictionLock = arePredictionsLocked;
       const previousResultLock = isResultLocked;
       arePredictionsLocked = true;
