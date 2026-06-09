@@ -78,7 +78,7 @@
       color: white;
       padding: 18px 28px;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       border-bottom: 1px solid rgba(255,255,255,.08);
       min-height: 108px;
       display: grid;
@@ -87,6 +87,7 @@
       justify-items: center;
       gap: 18px;
       box-shadow: 0 10px 35px rgba(0,0,0,.35);
+      z-index: 20;
     }
 
     header::before {
@@ -119,35 +120,6 @@
       right: auto;
     }
 
-    .header-nav {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 34px;
-      position: relative;
-      z-index: 2;
-      font-weight: 900;
-      text-transform: uppercase;
-      justify-self: center;
-    }
-
-    .header-nav button {
-      border: 0;
-      background: transparent;
-      color: rgba(255,255,255,.68);
-      cursor: pointer;
-      font-weight: 900;
-      font-size: 15px;
-      padding: 12px 8px;
-      border-bottom: 2px solid transparent;
-    }
-
-    .header-nav button:hover,
-    .header-nav button.active {
-      color: white;
-      border-bottom-color: #22c55e;
-    }
-
     .header-user {
       display: flex;
       align-items: center;
@@ -158,6 +130,25 @@
       top: 50%;
       transform: translateY(-50%);
       z-index: 2;
+    }
+
+    .header-user-menu-wrap {
+      position: relative;
+    }
+
+    .header-user-trigger {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(255,255,255,.10);
+      color: white;
+      border-radius: 999px;
+      padding: 6px 12px 6px 6px;
+      cursor: pointer;
+      font-weight: 900;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 8px 18px rgba(0,0,0,.18);
     }
 
     .header-user-avatar {
@@ -191,10 +182,55 @@
       font-size: 16px;
     }
 
+    .header-user-caret {
+      color: rgba(255,255,255,.8);
+      font-size: 12px;
+    }
+
+    .header-user-menu {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      min-width: 170px;
+      display: none;
+      padding: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.18);
+      background: rgba(15,23,42,.94);
+      box-shadow: 0 18px 36px rgba(0,0,0,.28);
+      backdrop-filter: blur(12px);
+      z-index: 50;
+    }
+
+    .header-user-menu.open {
+      display: grid;
+      gap: 4px;
+    }
+
+    .header-user-menu button {
+      width: 100%;
+      border: 0;
+      border-radius: 10px;
+      background: transparent;
+      color: white;
+      cursor: pointer;
+      font-weight: 900;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    .header-user-menu button:hover {
+      background: rgba(255,255,255,.12);
+    }
+
     .header-user-points {
       color: rgba(255,255,255,.78);
       font-size: 14px;
       margin-top: 4px;
+    }
+
+    .header-user-trigger .header-user-points {
+      display: none;
     }
 
     .top-action-btn {
@@ -1021,16 +1057,10 @@
 
     @media (max-width: 980px) {
       header {
-        grid-template-columns: 1fr auto;
+        grid-template-columns: 1fr;
         grid-template-areas:
-          ". user"
-          "nav nav";
+          "user";
         gap: 14px;
-      }
-
-      .header-nav {
-        grid-area: nav;
-        gap: 16px;
       }
 
       .header-user {
@@ -1086,19 +1116,6 @@
 
       .header-user-info {
         display: none;
-      }
-
-      .header-nav {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 12px;
-        margin-top: 14px;
-      }
-
-      .header-nav button {
-        font-size: 12px;
-        padding: 9px 4px;
       }
 
       .header-user {
@@ -1169,12 +1186,6 @@
       body.dark-theme #themeHeaderBtn::before {
         content: "☀️";
       }
-
-      #adminBtnTop::before {
-        content: "👑";
-        font-size: 22px;
-      }
-
       main {
         padding: 10px;
         margin-top: -18px;
@@ -1288,8 +1299,7 @@
         display: grid;
         grid-template-columns: 1fr;
         grid-template-areas:
-          "user"
-          "nav";
+          "user";
         gap: 12px;
       }
 
@@ -1298,26 +1308,9 @@
         min-width: 0;
       }
 
-      .header-nav {
-        display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
-        justify-content: stretch;
-        gap: 6px;
-        margin-top: 0;
-        width: 100%;
-      }
-
-      .header-nav button {
-        min-height: 40px;
-        font-size: 11px;
-        line-height: 1.15;
-        padding: 8px 4px;
-        overflow-wrap: anywhere;
-      }
-
       .header-user {
         display: grid;
-        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-columns: 1fr;
         align-items: center;
         justify-content: stretch;
         text-align: left;
@@ -1325,8 +1318,9 @@
         width: 100%;
       }
 
-      .header-user-avatar {
-        margin: 0;
+      .header-user-trigger {
+        width: 100%;
+        justify-content: flex-start;
       }
 
       .header-user-name,
@@ -1367,8 +1361,7 @@
         font-size: 0;
       }
 
-      #themeHeaderBtn::before,
-      #adminBtnTop::before {
+      #themeHeaderBtn::before {
         font-size: 18px;
       }
 
@@ -1497,10 +1490,6 @@
         padding: 12px 10px 14px;
       }
 
-      .header-nav {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
       .top-actions {
         justify-content: stretch;
       }
@@ -1571,24 +1560,23 @@
     </div>
   </div>
   <header style="display:none">
-    <nav class="header-nav" aria-label="Accesos principales">
-      <button class="active" onclick="showTab('inicio')">⌂ Inicio</button>
-      <button onclick="showTab('perfil')">👤 Mi perfil</button>
-      <button onclick="showTab('ranking')">♕ Ranking</button>
-      <button id="adminNavBtn" onclick="showTab('jugadores')">♜ Admin</button>
-    </nav>
-
     <div class="header-user">
-      <div class="header-user-avatar" id="headerUserAvatar">👤</div>
-      <div class="header-user-info">
-        <div class="header-user-name" id="headerUserName">Usuario</div>
-        <div class="auth-user-email" id="headerUserEmail"></div>
-        <div class="auth-user-email" id="headerUserRole">Rol: user</div>
-        <div class="header-user-points" id="headerUserPoints">0 pts</div>
+      <div class="header-user-menu-wrap" id="headerUserMenuWrap">
+        <button class="header-user-trigger" id="headerUserMenuBtn" type="button" onclick="toggleUserMenu()" aria-haspopup="true" aria-expanded="false">
+          <span class="header-user-avatar" id="headerUserAvatar">??</span>
+          <span class="header-user-info">
+            <span class="header-user-name" id="headerUserName">Usuario</span>
+            <span class="header-user-points" id="headerUserPoints">0 pts</span>
+          </span>
+          <span class="header-user-caret" aria-hidden="true">v</span>
+        </button>
+        <div class="header-user-menu" id="headerUserMenu">
+          <button type="button" onclick="openProfileFromUserMenu()">Mi Perfil</button>
+          <button type="button" id="userMenuAdminItem" onclick="openAdminFromUserMenu()">Admin</button>
+        </div>
       </div>
       <div class="top-actions">
-        <button id="themeHeaderBtn" class="top-action-btn" onclick="toggleTheme()">🌙</button>
-        <button id="adminBtnTop" class="top-action-btn" onclick="toggleAdminMode()">👑 Admin</button>
+        <button id="themeHeaderBtn" class="top-action-btn" onclick="toggleTheme()">Tema</button>
         <button id="logoutHeaderBtn" class="top-action-btn" onclick="logoutApp()">Salir</button>
       </div>
     </div>
@@ -3191,6 +3179,8 @@
       setAuthGate(event.detail.user);
     });
 
+    window.addEventListener('click', handleUserMenuDocumentClick);
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll('&', '&amp;')
@@ -3220,6 +3210,37 @@
 
       renderAll();
       if (id === 'eliminatorias') renderEliminatorias();
+    }
+
+    function closeUserMenu() {
+      const menu = document.getElementById('headerUserMenu');
+      const button = document.getElementById('headerUserMenuBtn');
+      if (menu) menu.classList.remove('open');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleUserMenu() {
+      const menu = document.getElementById('headerUserMenu');
+      const button = document.getElementById('headerUserMenuBtn');
+      if (!menu) return;
+      const isOpen = menu.classList.toggle('open');
+      if (button) button.setAttribute('aria-expanded', String(isOpen));
+    }
+
+    function openProfileFromUserMenu() {
+      closeUserMenu();
+      showTab('perfil');
+    }
+
+    function openAdminFromUserMenu() {
+      closeUserMenu();
+      showTab('jugadores');
+    }
+
+    function handleUserMenuDocumentClick(event) {
+      const wrap = document.getElementById('headerUserMenuWrap');
+      if (wrap && event?.target && wrap.contains?.(event.target)) return;
+      closeUserMenu();
     }
 
     function getFixtureDateName(text) {
@@ -3431,8 +3452,7 @@
 
     function updateAdminUI() {
       const addPlayerBtn = document.getElementById('addPlayerBtn');
-      const adminBtnTop = document.getElementById('adminBtnTop');
-      const adminNavBtn = document.getElementById('adminNavBtn');
+      const userMenuAdminItem = document.getElementById('userMenuAdminItem');
       const playersTabBtn = [...document.querySelectorAll('.tab-btn')].find(btn => btn.innerText.includes('Jugadores'));
       const adminOnlyCards = document.querySelectorAll('.admin-only');
 
@@ -3440,14 +3460,8 @@
         addPlayerBtn.disabled = !isAdmin;
       }
 
-      if (adminBtnTop) {
-        adminBtnTop.innerText = '👑 Admin ON';
-        adminBtnTop.classList.toggle('admin-on', isAdmin);
-        adminBtnTop.style.display = isAdmin ? 'inline-flex' : 'none';
-      }
-
-      if (adminNavBtn) {
-        adminNavBtn.style.display = isAdmin ? 'inline-block' : 'none';
+      if (userMenuAdminItem) {
+        userMenuAdminItem.style.display = isAdmin ? 'block' : 'none';
       }
 
       if (playersTabBtn) {
@@ -4162,7 +4176,12 @@
       assertTest('renderTeam no contiene imagen de bandera', !renderTeam('Argentina').includes('<img'));
       assertTest('renderTeam devuelve nombre del equipo', renderTeam('Argentina').includes('Argentina'));
       assertTest('deletePrediction existe', typeof deletePrediction === 'function');
-      assertTest('boton admin superior existe', document.getElementById('adminBtnTop') !== null);
+      assertTest('menu de usuario existe', document.getElementById('headerUserMenu') !== null);
+      assertTest('admin vive dentro del menu de usuario', document.getElementById('userMenuAdminItem') !== null);
+      toggleUserMenu();
+      assertTest('menu de usuario abre al hacer click', document.getElementById('headerUserMenu').classList.contains('open') === true);
+      handleUserMenuDocumentClick({ target: document.createElement('div') });
+      assertTest('menu de usuario cierra con click externo', document.getElementById('headerUserMenu').classList.contains('open') === false);
       assertTest('toggleTheme existe', typeof toggleTheme === 'function');
       assertTest('saveProfileName existe', typeof saveProfileName === 'function');
       assertTest('saveAvatarSettings existe', typeof saveAvatarSettings === 'function');
@@ -4171,6 +4190,15 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
+      const previousIsAdminForMenu = isAdmin;
+      isAdmin = false;
+      updateAdminUI();
+      assertTest('usuario comun no ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'none');
+      isAdmin = true;
+      updateAdminUI();
+      assertTest('admin ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'block');
+      isAdmin = previousIsAdminForMenu;
+      updateAdminUI();
       assertTest('usuario admin configurado correctamente', ADMIN_EMAIL === 'dmcfarlane@prode.local');
       assertTest('pantalla inicio existe', document.getElementById('inicio') !== null);
       assertTest('saveCloudData existe', typeof saveCloudData === 'function');
