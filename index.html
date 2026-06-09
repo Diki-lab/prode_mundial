@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -674,6 +674,41 @@
       white-space: nowrap;
     }
 
+    .fixture-date-row td {
+      background: color-mix(in srgb, var(--primary) 10%, var(--card));
+      color: var(--text);
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .03em;
+      border-top: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+      border-bottom: 1px solid color-mix(in srgb, var(--primary) 24%, var(--border));
+    }
+
+    .fixture-date-title {
+      display: block;
+      padding: 4px 0;
+    }
+
+    .group-table {
+      table-layout: fixed;
+    }
+
+    .group-table-team-col {
+      width: 220px;
+    }
+
+    .group-table-team {
+      width: 220px;
+      min-width: 220px;
+      text-align: left;
+    }
+
+    .group-table-team .team-name {
+      width: 100%;
+      white-space: normal;
+      line-height: 1.25;
+    }
+
     .points-badge {
       display: inline-flex;
       align-items: center;
@@ -996,6 +1031,10 @@
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 12px;
+    }
+
+    .eliminatorias-admin-actions {
+      margin-top: 14px;
     }
 
     .podium-avatar {
@@ -1563,7 +1602,7 @@
     <div class="header-user">
       <div class="header-user-menu-wrap" id="headerUserMenuWrap">
         <button class="header-user-trigger" id="headerUserMenuBtn" type="button" onclick="toggleUserMenu()" aria-haspopup="true" aria-expanded="false">
-          <span class="header-user-avatar" id="headerUserAvatar">??</span>
+          <span class="header-user-avatar" id="headerUserAvatar">?</span>
           <span class="header-user-info">
             <span class="header-user-name" id="headerUserName">Usuario</span>
             <span class="header-user-points" id="headerUserPoints">0 pts</span>
@@ -1842,16 +1881,17 @@
 
     <section id="eliminatorias" class="tab hidden">
       <div class="card">
-        <h2>🏆 Fases Eliminatorias</h2>
-        <p class="muted">Se generan automáticamente según posiciones de los grupos.</p>
-        <button class="primary" onclick="renderEliminatorias()">Generar cruces automáticos</button>
+        <h2>&#127942; Fases Eliminatorias</h2>
+        <div class="admin-only eliminatorias-admin-actions">
+          <button class="primary" id="generateBracketBtn" onclick="renderEliminatorias()">Generar cruces automáticos</button>
+        </div>
       </div>
-      <div class="card"><h3>Dieciseisavos</h3><div id="bracket16"></div></div>
-      <div class="card"><h3>Octavos</h3><div id="bracket8"></div></div>
-      <div class="card"><h3>Cuartos</h3><div id="bracket4"></div></div>
+      <div class="card"><h3>16avos de Final</h3><div id="bracket16"></div></div>
+      <div class="card"><h3>Octavos de Final</h3><div id="bracket8"></div></div>
+      <div class="card"><h3>Cuartos de Final</h3><div id="bracket4"></div></div>
       <div class="card"><h3>Semifinales</h3><div id="bracket2"></div></div>
+      <div class="card"><h3>Tercer Puesto</h3><div id="bracket3"></div></div>
       <div class="card"><h3>Final</h3><div id="bracketFinal"></div></div>
-      <div class="card"><h3>🥉 Tercer y Cuarto Puesto</h3><div id="bracket3"></div></div>
     </section>
 
     <section id="jugadores" class="tab hidden">
@@ -1930,11 +1970,15 @@
 
     <section id="reglas" class="tab hidden">
       <div class="card">
-        <h2>📌 Reglas sugeridas</h2>
+        <h2>&#128204; Reglas del Prode Mundial 2026</h2>
         <p><span class="pill">3 puntos</span> Resultado exacto. Ejemplo: pronóstico 2-1 y termina 2-1.</p>
         <p><span class="pill">1 punto</span> Acierta ganador o empate. Ejemplo: pronóstico 2-1 y termina 1-0.</p>
-        <p><span class="pill">0 puntos</span> No acierta el resultado.</p>
-        <p class="muted">Esta página guarda datos en el navegador y también en Firebase/Firestore cuando está conectado.</p>
+        <p><span class="pill">&#9898; 0 puntos</span> No acierta el resultado ni el ganador.</p>
+        <p><span class="pill">&#9200;</span> Los pronósticos podrán cargarse hasta el inicio de cada partido.</p>
+        <p>Una vez comenzado el partido, los pronósticos quedarán cerrados y no podrán modificarse.</p>
+        <p>El ranking se actualizará automáticamente durante el Mundial.</p>
+        <p>El ganador será el jugador que obtenga la mayor cantidad de puntos al finalizar el torneo.</p>
+        <p>El objetivo principal es disfrutar y compartir el Mundial entre compañeros.</p>
       </div>
     </section>
   </main>
@@ -2350,7 +2394,7 @@
     function handleAvatarImageError(image) {
       const container = image?.parentElement;
       if (!container) return;
-      container.textContent = container.dataset.fallback || 'ðŸ‘¤';
+      container.textContent = container.dataset.fallback || '👤';
     }
 
     function rememberUserProfile(profile = {}) {
@@ -2423,7 +2467,7 @@
 
     function requireAuth(action = 'usar el Prode') {
       if (isAuthenticated()) return true;
-      console.warn(`Accion bloqueada sin sesion: ${action}`);
+      console.warn(`Accion bloqueada sin sesión: ${action}`);
       setAuthGate(null);
       return false;
     }
@@ -2554,11 +2598,11 @@
       if (status) {
         const progress = getPredictionProgress();
         if (!currentFirebaseUser) {
-          status.innerText = 'Inicia sesion para cargar tus pronosticos.';
+          status.innerText = 'Inicia sesión para cargar tus pronósticos.';
         } else if (arePredictionsLocked) {
-          status.innerText = `Pronosticos cerrados para: ${getCurrentUserLabel()} (${getCurrentUserRole()}) | ${progress.done}/${progress.total} cargados`;
+          status.innerText = `Pronósticos cerrados para: ${getCurrentUserLabel()} (${getCurrentUserRole()}) | ${progress.done}/${progress.total} cargados`;
         } else {
-          status.innerText = `Pronosticos cargados para: ${getCurrentUserLabel()} (${getCurrentUserRole()}) | ${progress.done}/${progress.total} (${progress.percent}%)`;
+          status.innerText = `Pronósticos cargados para: ${getCurrentUserLabel()} (${getCurrentUserRole()}) | ${progress.done}/${progress.total} (${progress.percent}%)`;
         }
       }
     }
@@ -3051,7 +3095,7 @@
           const addedCurrentPlayer = currentProfileName && !players.includes(currentProfileName);
           if (addedCurrentPlayer) players.push(currentProfileName);
 
-          console.log(`Cargando pronosticos del usuario: ${currentProfileName || currentFirebaseUser.email}`);
+          console.log(`Cargando pronósticos del usuario: ${currentProfileName || currentFirebaseUser.email}`);
           const userPredictionDoc = await window.prodeFirebase.loadUserPredictions(currentFirebaseUser.uid);
           predictions = normalizePredictionList(userPredictionDoc?.predictions, currentProfileName);
           if (!predictions.length && currentProfileName) {
@@ -3126,7 +3170,7 @@
     }
 
     async function saveCurrentUserPredictions() {
-      if (!requireAuth('guardar pronosticos')) return false;
+      if (!requireAuth('guardar pronósticos')) return false;
       if (!window.prodeFirebase || !currentFirebaseUser) return false;
 
       const saveButton = document.getElementById('savePredictionBtn');
@@ -3134,7 +3178,7 @@
         saveButton.disabled = true;
         saveButton.innerText = 'Guardando...';
       }
-      setPredictionStatus(`Guardando pronosticos para: ${getCurrentUserLabel()}`);
+      setPredictionStatus(`Guardando pronósticos para: ${getCurrentUserLabel()}`);
 
       try {
         const userPredictions = normalizePredictionList(predictions, currentProfileName);
@@ -3154,11 +3198,11 @@
         if (!rankingPredictions.length) rankingPredictions = [...predictions];
 
         localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
-        setPredictionStatus(`Pronosticos guardados para: ${getCurrentUserLabel()}`);
-        console.log(`Pronosticos guardados en prode/mundial2026/predictions/${currentFirebaseUser.uid}`);
+        setPredictionStatus(`Pronósticos guardados para: ${getCurrentUserLabel()}`);
+        console.log(`Pronósticos guardados en prode/mundial2026/predictions/${currentFirebaseUser.uid}`);
         return true;
       } catch (error) {
-        const message = getFirestoreErrorMessage(error, 'guardar pronosticos');
+        const message = getFirestoreErrorMessage(error, 'guardar pronósticos');
         console.warn(message, error);
         setPredictionStatus(message, true);
         return false;
@@ -3254,6 +3298,47 @@
       return numberA - numberB || a.localeCompare(b);
     }
 
+    function parseFixtureDate(dateText) {
+      const [day, month, year] = String(dateText || '').split('/').map(Number);
+      if (!day || !month || !year) return null;
+      return new Date(year, month - 1, day);
+    }
+
+    function getFixtureWeekdayName(dateText) {
+      const date = parseFixtureDate(dateText);
+      if (!date) return '';
+      return ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'][date.getDay()];
+    }
+
+    function getFixtureStageDisplayName(match) {
+      const raw = String(match?.group || match?.phase || match?.round || match?.stage || '');
+      const normalized = raw
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+      const dateName = getFixtureDateName(raw);
+      if (dateName) return dateName;
+      if (/(16|dieciseisavos|dieciseisavo)/.test(normalized)) return '16avos de Final';
+      if (/(8|octavos|octavo)/.test(normalized)) return 'Octavos de Final';
+      if (/(4|cuartos|cuarto)/.test(normalized)) return 'Cuartos de Final';
+      if (/semi/.test(normalized)) return 'Semifinales';
+      if (/(3|tercer|tercero).*(puesto|cuarto)|puesto.*(3|tercer|tercero)/.test(normalized)) return 'Tercer Puesto';
+      if (/final/.test(normalized)) return 'Final';
+      return raw || 'Fixture';
+    }
+
+    function getFixtureHeaderTitle(match) {
+      const stage = getFixtureStageDisplayName(match);
+      const weekday = getFixtureWeekdayName(match?.date);
+      return weekday ? `${stage} (${weekday} - ${match.date})` : stage;
+    }
+
+    function compareFixtureMatches(a, b) {
+      const dateA = parseFixtureDate(a.date);
+      const dateB = parseFixtureDate(b.date);
+      return (dateA && dateB ? dateA - dateB : 0) || a.id - b.id;
+    }
+
     const PREDICTION_STAGE_FILTERS = [
       'Fecha 1',
       'Fecha 2',
@@ -3297,17 +3382,14 @@
 
       const dates = [...new Set(matches.map(match => match.date))]
         .sort((a, b) => {
-          const [dayA, monthA, yearA] = a.split('/').map(Number);
-          const [dayB, monthB, yearB] = b.split('/').map(Number);
-
-          const dateA = new Date(yearA, monthA - 1, dayA);
-          const dateB = new Date(yearB, monthB - 1, dayB);
+          const dateA = parseFixtureDate(a);
+          const dateB = parseFixtureDate(b);
 
           return dateA - dateB;
         });
 
       select.innerHTML = '<option value="">Todas las fechas</option>' + dates
-        .map(date => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)
+        .map(date => `<option value="${escapeHtml(date)}">${escapeHtml(`${getFixtureWeekdayName(date)} - ${date}`)}</option>`)
         .join('');
 
       select.value = dates.includes(current) ? current : '';
@@ -3415,19 +3497,30 @@
       const query = (document.getElementById('searchMatch').value || '').toLowerCase();
       const selectedGroup = document.getElementById('filterGroup').value;
       const selectedDate = document.getElementById('filterDate').value;
+      let previousHeader = '';
       const rows = matches
         .filter(match => (!selectedGroup || match.group === selectedGroup) && (!selectedDate || match.date === selectedDate) && `${match.home} ${match.away}`.toLowerCase().includes(query))
-        .map(match => `
-          <tr>
-            <td><span class="match-number">${match.id}</span></td>
-            <td>${escapeHtml(match.date)}</td>
-            <td><span class="group-badge">${escapeHtml(match.group)}</span></td>
-            <td>${renderTeam(match.home)}</td>
-            <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.homeGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'homeGoals', this.value)"></td>
-            <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.awayGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'awayGoals', this.value)"></td>
-            <td>${renderTeam(match.away)}</td>
-          </tr>
-        `)
+        .sort(compareFixtureMatches)
+        .map(match => {
+          const headerTitle = getFixtureHeaderTitle(match);
+          const headerRow = headerTitle !== previousHeader
+            ? `<tr class="fixture-date-row"><td colspan="7"><span class="fixture-date-title">${escapeHtml(headerTitle)}</span></td></tr>`
+            : '';
+          previousHeader = headerTitle;
+
+          return `
+            ${headerRow}
+            <tr>
+              <td><span class="match-number">${match.id}</span></td>
+              <td>${escapeHtml(match.date)}</td>
+              <td><span class="group-badge">${escapeHtml(match.group)}</span></td>
+              <td>${renderTeam(match.home)}</td>
+              <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.homeGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'homeGoals', this.value)"></td>
+              <td><input class="score-input" type="number" min="0" value="${escapeHtml(match.awayGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'awayGoals', this.value)"></td>
+              <td>${renderTeam(match.away)}</td>
+            </tr>
+          `;
+        })
         .join('');
 
       document.getElementById('fixtureBody').innerHTML = rows;
@@ -3468,8 +3561,8 @@
         playersTabBtn.style.display = isAdmin ? 'inline-block' : 'none';
       }
 
-      adminOnlyCards.forEach(card => {
-        card.style.display = isAdmin ? 'flex' : 'none';
+      adminOnlyCards.forEach(element => {
+        element.style.display = isAdmin ? '' : 'none';
       });
     }
 
@@ -3522,7 +3615,7 @@
     async function savePredictionRow(matchId) {
       if (!requireAuth('guardar pronostico')) return;
       if (isPredictionEditingBlocked()) {
-        setPredictionStatus('Pronosticos cerrados: no se pueden cargar ni modificar.', true);
+        setPredictionStatus('Pronósticos cerrados: no se pueden cargar ni modificar.', true);
         renderLockStatuses();
         return;
       }
@@ -3594,8 +3687,8 @@
       if (progress) {
         const currentProgress = getPredictionProgress();
         progress.innerText = isAdmin
-          ? `Vista consolidada: ${dedupePredictionList(visiblePredictions).length} pronosticos únicos.`
-          : `Mis pronosticos: ${currentProgress.done}/${currentProgress.total} partidos (${currentProgress.percent}%).`;
+          ? `Vista consolidada: ${dedupePredictionList(visiblePredictions).length} pronósticos únicos.`
+          : `Mis pronósticos: ${currentProgress.done}/${currentProgress.total} partidos (${currentProgress.percent}%).`;
       }
     }
 
@@ -3699,7 +3792,7 @@
       }).join('');
 
       if (progress) {
-        progress.innerText = `Vista consolidada: ${consolidatedSource.length} pronosticos únicos.`;
+        progress.innerText = `Vista consolidada: ${consolidatedSource.length} pronósticos únicos.`;
       }
     }
 
@@ -3771,7 +3864,7 @@
       const progress = document.getElementById('myPredictionsProgress');
       if (progress) {
         const currentProgress = getPredictionProgress();
-        progress.innerText = `Mis pronosticos: ${currentProgress.done}/${currentProgress.total} partidos (${currentProgress.percent}%).`;
+        progress.innerText = `Mis pronósticos: ${currentProgress.done}/${currentProgress.total} partidos (${currentProgress.percent}%).`;
       }
 
       renderConsolidatedPredictions();
@@ -3784,7 +3877,7 @@
         renderLockStatuses();
         return;
       }
-      setPredictionStatus('Los pronosticos consolidados son solo lectura desde Admin.', true);
+      setPredictionStatus('Los pronósticos consolidados son solo lectura desde Admin.', true);
     }
 
     function getRankingTotals() {
@@ -3945,11 +4038,11 @@
       container.innerHTML = Object.entries(tables).map(([group, table]) => `
         <div class="card table-wrap">
           <h3>${escapeHtml(group)}</h3>
-          <table>
+          <table class="group-table">
             <thead>
               <tr>
                 <th>Pos</th>
-                <th>Selección</th>
+                <th class="group-table-team-col">Equipo</th>
                 <th>Pts</th>
                 <th>PJ</th>
                 <th>G</th>
@@ -3964,7 +4057,7 @@
               ${table.map((row, index) => `
                 <tr>
                   <td><span class="match-number">${index + 1}</span></td>
-                  <td>${renderTeam(row.team)}</td>
+                  <td class="group-table-team">${renderTeam(row.team)}</td>
                   <td><span class="points-badge">${row.points}</span></td>
                   <td>${row.played}</td>
                   <td>${row.won}</td>
@@ -3994,7 +4087,7 @@
       if (!requireAuth('borrar jugador')) return;
       if (!isAdmin) return;
       const name = players[index];
-      if (!window.confirm(`¿Borrar jugador "${name}"? Esta accion tambien quita sus pronosticos locales visibles en esta sesion.`)) return;
+      if (!window.confirm(`¿Borrar jugador "${name}"? Esta acción también quita sus pronósticos locales visibles en esta sesión.`)) return;
       players.splice(index, 1);
       predictions = predictions.filter(p => p.player !== name);
       saveAll();
@@ -4067,28 +4160,28 @@
 
     function renderEliminatorias() {
       const round16 = generateBracket16();
-      renderBracket('bracket16', 'Dieciseisavos', round16);
+      renderBracket('bracket16', '16avos de Final', round16);
 
       const round8 = [];
       for (let i = 0; i < round16.length; i += 2) {
         round8.push({ home: `Ganador dieciseisavos ${i + 1}`, away: `Ganador dieciseisavos ${i + 2}` });
       }
-      renderBracket('bracket8', 'Octavos', round8);
+      renderBracket('bracket8', 'Octavos de Final', round8);
 
       const quarterFinals = [];
       for (let i = 0; i < round8.length; i += 2) {
         quarterFinals.push({ home: `Ganador octavos ${i + 1}`, away: `Ganador octavos ${i + 2}` });
       }
-      renderBracket('bracket4', 'Cuartos', quarterFinals);
+      renderBracket('bracket4', 'Cuartos de Final', quarterFinals);
 
       const semiFinals = [];
       for (let i = 0; i < quarterFinals.length; i += 2) {
         semiFinals.push({ home: `Ganador cuartos ${i + 1}`, away: `Ganador cuartos ${i + 2}` });
       }
-      renderBracket('bracket2', 'Semifinal', semiFinals);
+      renderBracket('bracket2', 'Semifinales', semiFinals);
 
       renderBracket('bracketFinal', 'Final', [{ home: 'Ganador semifinal 1', away: 'Ganador semifinal 2' }]);
-      renderBracket('bracket3', '3° puesto', [{ home: 'Perdedor semifinal 1', away: 'Perdedor semifinal 2' }]);
+      renderBracket('bracket3', 'Tercer Puesto', [{ home: 'Perdedor semifinal 1', away: 'Perdedor semifinal 2' }]);
     }
 
     function buildRankingExportText() {
@@ -4169,10 +4262,18 @@
       assertTest('26/06/2026 NO tiene Egipto vs Irán', !defaultMatches.some(m => m.date === '26/06/2026' && m.home === 'Egipto' && m.away === 'Irán'));
       assertTest('26/06/2026 NO tiene Nueva Zelanda vs Bélgica', !defaultMatches.some(m => m.date === '26/06/2026' && m.home === 'Nueva Zelanda' && m.away === 'Bélgica'));
       assertTest('22/06/2026 NO tiene Jordania vs Argelia', !defaultMatches.some(m => m.date === '22/06/2026' && m.home === 'Jordania' && m.away === 'Argelia'));
-      assertTest('partido inaugural es Mexico vs Sudafrica', defaultMatches[0].home === 'México' && defaultMatches[0].away === 'Sudáfrica');
-      assertTest('Grupo A fecha 2 es Mexico vs Corea del Sur', defaultMatches[27].home === 'México' && defaultMatches[27].away === 'Corea del Sur');
+      assertTest('partido inaugural es México vs Sudáfrica', defaultMatches[0].home === 'México' && defaultMatches[0].away === 'Sudáfrica');
+      assertTest('Grupo A fecha 2 es México vs Corea del Sur', defaultMatches[27].home === 'México' && defaultMatches[27].away === 'Corea del Sur');
       assertTest('tabla de grupos crea 12 grupos', Object.keys(calculateGroupTables()).length === 12);
       assertTest('dieciseisavos genera 12 cruces con esquema simple', generateBracket16().length === 12);
+      assertTest('fixture fecha 1 muestra dia y fecha', getFixtureHeaderTitle(defaultMatches[0]) === 'Fecha 1 (Jueves - 11/06/2026)');
+      assertTest('fixture final muestra dia y fecha', getFixtureHeaderTitle({ date: '19/07/2026', group: 'Final' }) === 'Final (Domingo - 19/07/2026)');
+      renderFixture();
+      assertTest('fixture renderiza encabezados por fecha', document.getElementById('fixtureBody').innerHTML.includes('fixture-date-row'));
+      assertTest('fixture renderiza Fecha 1 con dia', document.getElementById('fixtureBody').innerHTML.includes('Fecha 1 (Jueves - 11/06/2026)'));
+      assertTest('eliminatorias puede renderizar cruces', typeof renderEliminatorias === 'function');
+      renderGroupTables();
+      assertTest('tabla de grupos usa columna equipo fija', document.getElementById('groupsTablesBody').innerHTML.includes('group-table-team'));
       assertTest('renderTeam no contiene imagen de bandera', !renderTeam('Argentina').includes('<img'));
       assertTest('renderTeam devuelve nombre del equipo', renderTeam('Argentina').includes('Argentina'));
       assertTest('deletePrediction existe', typeof deletePrediction === 'function');
@@ -4190,13 +4291,17 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
+      assertTest('boton generar cruces existe', document.getElementById('generateBracketBtn') !== null);
+      assertTest('boton generar cruces llama renderEliminatorias', document.getElementById('generateBracketBtn').getAttribute('onclick') === 'renderEliminatorias()');
       const previousIsAdminForMenu = isAdmin;
       isAdmin = false;
       updateAdminUI();
       assertTest('usuario comun no ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'none');
+      assertTest('usuario comun no ve boton generar cruces', document.getElementById('generateBracketBtn').parentNode.style.display === 'none');
       isAdmin = true;
       updateAdminUI();
       assertTest('admin ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'block');
+      assertTest('admin ve boton generar cruces', document.getElementById('generateBracketBtn').parentNode.style.display !== 'none');
       isAdmin = previousIsAdminForMenu;
       updateAdminUI();
       assertTest('usuario admin configurado correctamente', ADMIN_EMAIL === 'dmcfarlane@prode.local');
@@ -4265,11 +4370,11 @@
       const previousResultLock = isResultLocked;
       arePredictionsLocked = true;
       isResultLocked = true;
-      assertTest('bloqueo de pronosticos activo bloquea edicion', isPredictionEditingBlocked() === true);
+      assertTest('bloqueo de pronósticos activo bloquea edicion', isPredictionEditingBlocked() === true);
       assertTest('bloqueo de resultados activo bloquea edicion', isResultEditingBlocked() === true);
       arePredictionsLocked = false;
       isResultLocked = false;
-      assertTest('bloqueo de pronosticos inactivo permite edicion', isPredictionEditingBlocked() === false);
+      assertTest('bloqueo de pronósticos inactivo permite edicion', isPredictionEditingBlocked() === false);
       assertTest('bloqueo de resultados inactivo permite edicion', isResultEditingBlocked() === false);
       arePredictionsLocked = previousPredictionLock;
       isResultLocked = previousResultLock;
@@ -4281,7 +4386,7 @@
       ];
       assertTest('dedupePredictionList evita duplicados por jugador y partido', dedupePredictionList(duplicatePredictions).length === 1);
       assertTest('fuente ranking usa subcoleccion como prioridad', getRankingPredictionSource([{ displayName: 'Ana', predictions: duplicatePredictions }], [{ player: 'Ana', matchId: 1, home: 0, away: 0 }]).length === 1);
-      assertTest('progreso de pronosticos calcula total', getPredictionProgress(currentProfileName).total === matches.length);
+      assertTest('progreso de pronósticos calcula total', getPredictionProgress(currentProfileName).total === matches.length);
     }
 
     try {
