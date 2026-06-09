@@ -1552,7 +1552,8 @@
       <p style="color:#687386;margin-bottom:25px;">Ingresá para continuar</p>
 
       <input id="loginName" placeholder="Nombre visible" style="margin-bottom:14px;display:none">
-      <input id="loginUser" type="email" placeholder="Email" style="margin-bottom:14px">
+      <input id="loginUser" type="email" placeholder="usuario@prode.local" style="margin-bottom:6px">
+      <div id="authDomainHint" style="color:#687386;font-size:13px;font-weight:700;margin:0 0 14px;">Solo usuarios @prode.local</div>
       <input id="loginPassword" type="password" placeholder="Contraseña" style="margin-bottom:18px">
 
       <div class="auth-actions">
@@ -2282,6 +2283,8 @@
     let firebaseEnabled = false;
     let firebaseLoading = false;
     let authActionLoading = false;
+    const ALLOWED_AUTH_EMAIL_DOMAIN = '@prode.local';
+    const AUTH_DOMAIN_ERROR_MESSAGE = 'Solo se permiten usuarios @prode.local';
 
     function getInitials(name) {
       return name
@@ -2408,6 +2411,10 @@
 
     function normalizeEmail(email) {
       return (email || '').trim().toLowerCase();
+    }
+
+    function isAllowedProdeEmail(email) {
+      return normalizeEmail(email).endsWith(ALLOWED_AUTH_EMAIL_DOMAIN);
     }
 
     function getUserRole(user) {
@@ -2755,7 +2762,7 @@
     function getAuthFormValues() {
       return {
         displayName: (document.getElementById('loginName')?.value || '').trim(),
-        email: (document.getElementById('loginUser')?.value || '').trim(),
+        email: normalizeEmail(document.getElementById('loginUser')?.value || ''),
         password: document.getElementById('loginPassword')?.value || ''
       };
     }
@@ -3319,6 +3326,11 @@
         return;
       }
 
+      if (!isAllowedProdeEmail(email)) {
+        showAuthError(AUTH_DOMAIN_ERROR_MESSAGE);
+        return;
+      }
+
       if (!window.prodeFirebase) {
         showAuthError('Firebase todavía se está cargando');
         return;
@@ -3341,6 +3353,11 @@
 
       if (!displayName || !email || !password) {
         showAuthError('Completá nombre, email y contraseña');
+        return;
+      }
+
+      if (!isAllowedProdeEmail(email)) {
+        showAuthError(AUTH_DOMAIN_ERROR_MESSAGE);
         return;
       }
 
@@ -4159,6 +4176,12 @@
       assertTest('saveCloudData existe', typeof saveCloudData === 'function');
       assertTest('loadCloudData existe', typeof loadCloudData === 'function');
       assertTest('escapeHtml bloquea simbolos peligrosos', escapeHtml('<script>') === '&lt;script&gt;');
+      assertTest('asinderman prode local permitido', isAllowedProdeEmail('asinderman@prode.local') === true);
+      assertTest('dmcfarlane prode local permitido', isAllowedProdeEmail('DMCFARLANE@PRODE.LOCAL') === true);
+      assertTest('gmail bloqueado para registro y login', isAllowedProdeEmail('usuario@gmail.com') === false);
+      assertTest('hotmail bloqueado para registro y login', isAllowedProdeEmail('usuario@hotmail.com') === false);
+      assertTest('outlook bloqueado para registro y login', isAllowedProdeEmail('usuario@outlook.com') === false);
+      assertTest('mensaje de dominio auth correcto', AUTH_DOMAIN_ERROR_MESSAGE === 'Solo se permiten usuarios @prode.local');
       assertTest('export ranking tiene saltos seguros', buildRankingExportText().includes('\n\n'));
       assertTest('resultado exacto suma 3 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, testMatches) === 3);
       assertTest('ganador correcto suma 1 punto', pointsFor({ matchId: 1, home: 1, away: 0 }, testMatches) === 1);
