@@ -1908,6 +1908,7 @@
 
       <div class="card">
         <h2>👥 Jugadores</h2>
+        <p class="muted" id="playersSourceStatus"></p>
         <div class="grid">
           <div>
             <label for="newPlayer">Nombre</label>
@@ -2307,6 +2308,7 @@
     const ADMIN_EMAIL = 'dmcfarlane@prode.local';
     let rankingPredictions = [];
     let legacyRankingPredictions = [];
+    let registeredUserProfiles = [];
     let editingPredictionRows = {};
     const LOCAL_AVATAR_BASE_PATH = 'img/avatars/';
 
@@ -2418,6 +2420,46 @@
         avatarColor: '#0d47a1',
         localAvatarPath: getLocalAvatarPath(player)
       });
+    }
+
+    function getRegisteredPlayerName(profile = {}) {
+      const displayName = String(profile.displayName || '').trim().replace(/\s+/g, ' ');
+      if (displayName) return displayName;
+      return String(profile.email || '').split('@')[0].trim().replace(/\s+/g, ' ');
+    }
+
+    function isRegisteredPlayerProfile(profile = {}) {
+      const email = normalizeEmail(profile.email);
+      const role = String(profile.role || '').trim().toLowerCase();
+      if (email === ADMIN_EMAIL || role === 'admin' || profile.isAdmin === true) return false;
+      return role === 'user' || profile.isAdmin === false;
+    }
+
+    function setRegisteredUserProfiles(profiles = []) {
+      registeredUserProfiles = Array.isArray(profiles)
+        ? profiles.filter(profile => isRegisteredPlayerProfile(profile) && getRegisteredPlayerName(profile))
+        : [];
+      registeredUserProfiles.forEach(profile => rememberUserProfile(profile));
+    }
+
+    function getVisiblePlayers() {
+      const byName = new Map();
+
+      players.forEach((player, manualIndex) => {
+        const name = String(player || '').trim().replace(/\s+/g, ' ');
+        const key = normalizePlayerName(name);
+        if (!name || byName.has(key)) return;
+        byName.set(key, { name, source: 'manual', manualIndex });
+      });
+
+      registeredUserProfiles.forEach(profile => {
+        const name = getRegisteredPlayerName(profile);
+        const key = normalizePlayerName(name);
+        if (!name || byName.has(key)) return;
+        byName.set(key, { name, source: 'users', manualIndex: -1 });
+      });
+
+      return [...byName.values()];
     }
 
     function buildAvatarMarkup(settings, className = 'podium-avatar') {
@@ -2553,7 +2595,7 @@
 
     function playerExists(name) {
       const normalized = normalizePlayerName(name);
-      return players.some(player => normalizePlayerName(player) === normalized);
+      return getVisiblePlayers().some(player => normalizePlayerName(player.name) === normalized);
     }
 
     function getPredictionProgress(player = currentProfileName) {
@@ -2743,6 +2785,7 @@
         });
         predictions = [];
         rankingPredictions = [];
+        registeredUserProfiles = [];
         localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
         clearAuthError();
         setAuthLoading(false);
@@ -2766,6 +2809,7 @@
       currentUserAvatar = normalizeAvatarSettings();
       clearPendingAvatarPhoto();
       userProfilesByName = {};
+      registeredUserProfiles = [];
       localStorage.removeItem(STORAGE_KEYS.profileName);
       localStorage.removeItem(STORAGE_KEYS.adminSession);
       const headerUserAvatar = document.getElementById('headerUserAvatar');
@@ -3078,6 +3122,14 @@
       }
     }
 
+    async function loadRegisteredUserProfiles() {
+      if (!window.prodeFirebase || !currentFirebaseUser) return [];
+
+      const userProfiles = await window.prodeFirebase.loadUserProfiles();
+      setRegisteredUserProfiles(userProfiles);
+      return registeredUserProfiles;
+    }
+
     async function loadCloudData() {
       if (!window.prodeFirebase || firebaseLoading || !currentFirebaseUser) return;
 
@@ -3105,8 +3157,7 @@
           try {
             const predictionDocs = await window.prodeFirebase.loadAllPredictions();
             predictionDocs.forEach(item => rememberUserProfile(item));
-            const userProfiles = await window.prodeFirebase.loadUserProfiles();
-            userProfiles.forEach(profile => rememberUserProfile(profile));
+            await loadRegisteredUserProfiles();
             rankingPredictions = getRankingPredictionSource(predictionDocs, legacyPredictions, predictions);
           } catch (error) {
             rankingPredictions = getRankingPredictionSource([], legacyPredictions, predictions);
@@ -3143,6 +3194,11 @@
             console.warn('Solo el admin puede inicializar prode/mundial2026 en Firestore.');
           }
           rankingPredictions = [...predictions];
+          try {
+            await loadRegisteredUserProfiles();
+          } catch (error) {
+            console.warn(getFirestoreErrorMessage(error, 'cargar usuarios registrados'), error);
+          }
         }
         renderAll();
       } catch (error) {
@@ -3188,8 +3244,7 @@
         try {
           const predictionDocs = await window.prodeFirebase.loadAllPredictions();
           predictionDocs.forEach(item => rememberUserProfile(item));
-          const userProfiles = await window.prodeFirebase.loadUserProfiles();
-          userProfiles.forEach(profile => rememberUserProfile(profile));
+          await loadRegisteredUserProfiles();
           rankingPredictions = getRankingPredictionSource(predictionDocs, legacyRankingPredictions, predictions);
         } catch (error) {
           rankingPredictions = getRankingPredictionSource([], legacyRankingPredictions, predictions);
@@ -3254,6 +3309,11 @@
 
       renderAll();
       if (id === 'eliminatorias') renderEliminatorias();
+      if (id === 'jugadores') {
+        loadRegisteredUserProfiles()
+          .then(() => renderPlayers())
+          .catch(error => console.warn(getFirestoreErrorMessage(error, 'cargar usuarios registrados'), error));
+      }
     }
 
     function closeUserMenu() {
@@ -4075,10 +4135,16 @@
     }
 
     function renderPlayers() {
-      document.getElementById('playersBody').innerHTML = players.map((player, index) => `
+      const visiblePlayers = getVisiblePlayers();
+      const playersSourceStatus = document.getElementById('playersSourceStatus');
+      if (playersSourceStatus) {
+        playersSourceStatus.innerText = `Mostrando ${visiblePlayers.length} jugadores: ${players.length} manuales y ${registeredUserProfiles.length} usuarios registrados no admin.`;
+      }
+
+      document.getElementById('playersBody').innerHTML = visiblePlayers.map(player => `
         <tr>
-          <td>${escapeHtml(player)}</td>
-          <td>${isAdmin ? `<button class="danger" onclick="deletePlayer(${index})">Borrar</button>` : ''}</td>
+          <td>${escapeHtml(player.name)}</td>
+          <td>${isAdmin && player.source === 'manual' ? `<button class="danger" onclick="deletePlayer(${player.manualIndex})">Borrar</button>` : '<span class="muted">Usuario registrado</span>'}</td>
         </tr>
       `).join('');
     }
@@ -4326,10 +4392,12 @@
       const previousRankingPredictions = rankingPredictions;
       const previousMatches = matches;
       const previousUserProfilesByName = userProfilesByName;
+      const previousRegisteredUserProfiles = registeredUserProfiles;
       try {
         userProfilesByName = {};
         rememberUserProfile({ displayName: 'Ana', email: 'asinderman@prode.local' });
         players = ['Carla', 'Ana', 'Bruno'];
+        registeredUserProfiles = [];
         predictions = [];
         matches = [
           { id: 9001, homeGoals: 2, awayGoals: 1 },
@@ -4352,12 +4420,28 @@
         assertTest('podio muestra avatar local existente', document.getElementById('homePodium').innerHTML.includes('img/avatars/asinderman.jpg'));
         renderRanking();
         assertTest('ranking muestra avatar local existente', document.getElementById('rankingBody').innerHTML.includes('img/avatars/asinderman.jpg'));
+        setRegisteredUserProfiles([
+          { displayName: 'Lionel Messi', email: 'messi@prode.local', role: 'user', isAdmin: false },
+          { displayName: 'Admin Test', email: 'dmcfarlane@prode.local', role: 'admin', isAdmin: true },
+          { displayName: 'Ana', email: 'ana@prode.local', role: 'user', isAdmin: false },
+          { displayName: 'Usuario Prueba', email: 'prueba@prode.local', isAdmin: false }
+        ]);
+        const visiblePlayerNames = getVisiblePlayers().map(player => player.name);
+        assertTest('messi aparece automaticamente desde users', visiblePlayerNames.includes('Lionel Messi'));
+        assertTest('admin no aparece desde users', !visiblePlayerNames.includes('Admin Test'));
+        assertTest('usuario con role user aparece desde users', visiblePlayerNames.includes('Lionel Messi'));
+        assertTest('usuario con isAdmin false aparece desde users', visiblePlayerNames.includes('Usuario Prueba'));
+        assertTest('jugadores deduplica manual y users', visiblePlayerNames.filter(name => name === 'Ana').length === 1);
+        renderPlayers();
+        assertTest('pantalla jugadores muestra usuario registrado', document.getElementById('playersBody').innerHTML.includes('Lionel Messi'));
+        assertTest('pantalla jugadores excluye admin registrado', !document.getElementById('playersBody').innerHTML.includes('Admin Test'));
       } finally {
         players = previousPlayers;
         predictions = previousPredictions;
         rankingPredictions = previousRankingPredictions;
         matches = previousMatches;
         userProfilesByName = previousUserProfilesByName;
+        registeredUserProfiles = previousRegisteredUserProfiles;
       }
       assertTest('avatar sin foto usa iniciales del jugador', getAvatarDisplayValue(getAvatarForPlayer('Juan Perez')) === 'JP');
       renderAvatarElement(document.getElementById('profileAvatar'), normalizeAvatarSettings({
