@@ -754,7 +754,7 @@
     .match-predictions-overlay {
       position: fixed;
       inset: 0;
-      z-index: 100;
+      z-index: 10000;
       display: none;
       align-items: center;
       justify-content: center;
@@ -768,7 +768,7 @@
 
     .match-predictions-modal {
       width: min(760px, 100%);
-      max-height: min(82vh, 760px);
+      max-height: min(88vh, 760px);
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -784,16 +784,64 @@
       align-items: flex-start;
       justify-content: space-between;
       gap: 16px;
-      padding: 18px 20px;
+      flex: 0 0 auto;
+      padding: 14px 18px 12px;
       border-bottom: 1px solid var(--border);
       background: var(--soft);
+      position: relative;
+      z-index: 1;
+      overflow: visible;
     }
 
+    .match-predictions-heading {
+      min-width: 0;
+      flex: 1 1 auto;
+    }
+
+    .match-predictions-title,
     .match-predictions-header h3 {
-      margin: 0 0 6px;
+      display: block;
+      margin: 0 0 4px;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 900;
+      overflow-wrap: anywhere;
+      line-height: 1.2;
+    }
+
+    .match-predictions-subtitle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .match-status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 900;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .match-status-pill.finished {
+      border: 1px solid rgba(34, 197, 94, .55);
+      background: rgba(22, 101, 52, .16);
+      color: var(--success-text);
+    }
+
+    .match-status-pill.pending {
+      border: 1px solid rgba(148, 163, 184, .55);
+      background: rgba(148, 163, 184, .14);
+      color: var(--muted);
     }
 
     .match-predictions-close {
+      flex: 0 0 auto;
       min-width: 40px;
       min-height: 40px;
       border-radius: 10px;
@@ -803,8 +851,11 @@
     }
 
     .match-predictions-body {
+      flex: 1 1 auto;
+      min-height: 0;
       overflow: auto;
-      padding: 0 20px 20px;
+      padding: 0 18px 16px;
+      -webkit-overflow-scrolling: touch;
     }
 
     .match-predictions-table {
@@ -1378,7 +1429,7 @@
       }
 
       .match-predictions-overlay {
-        align-items: flex-end;
+        align-items: center;
         padding: 8px;
       }
 
@@ -1389,7 +1440,12 @@
       }
 
       .match-predictions-header {
-        padding: 14px;
+        gap: 10px;
+        padding: 12px 14px 10px;
+      }
+
+      .match-predictions-header h3 {
+        font-size: 18px;
       }
 
       .match-predictions-body {
@@ -1931,8 +1987,8 @@
       <div id="matchPredictionsOverlay" class="match-predictions-overlay" role="dialog" aria-modal="true" aria-labelledby="matchPredictionsTitle" onclick="handleMatchPredictionsOverlayClick(event)">
         <div class="match-predictions-modal">
           <div class="match-predictions-header">
-            <div>
-              <h3 id="matchPredictionsTitle">Pronósticos del partido</h3>
+            <div class="match-predictions-heading">
+              <h3 id="matchPredictionsTitle" class="match-predictions-title">Pronósticos del partido</h3>
               <p class="muted" id="matchPredictionsSubtitle"></p>
             </div>
             <button type="button" class="secondary-action match-predictions-close" aria-label="Cerrar" onclick="closeMatchPredictionsModal()">×</button>
@@ -2633,9 +2689,18 @@
     }
 
     function getAvatarForPlayer(player) {
-      return userProfilesByName[String(player || '').trim().toLowerCase()] || normalizeAvatarSettings({
+      const playerInitials = getInitials(player || '');
+      const profileAvatar = userProfilesByName[String(player || '').trim().toLowerCase()];
+      if (profileAvatar) {
+        return normalizeAvatarSettings({
+          ...profileAvatar,
+          avatarValue: profileAvatar.avatarValue || playerInitials
+        });
+      }
+
+      return normalizeAvatarSettings({
         avatarType: 'initial',
-        avatarValue: getInitials(player || ''),
+        avatarValue: playerInitials,
         avatarColor: '#0d47a1',
         localAvatarPath: getLocalAvatarPath(player)
       });
@@ -4212,6 +4277,47 @@
       });
     }
 
+    function hasMatchValue(value) {
+      return value !== ''
+        && value !== null
+        && typeof value !== 'undefined';
+    }
+
+    function hasOfficialResult(match) {
+      return hasMatchValue(match?.homeGoals) && hasMatchValue(match?.awayGoals);
+    }
+
+    function hasOfficialPenalties(match) {
+      return hasMatchValue(match?.homePenalties) && hasMatchValue(match?.awayPenalties);
+    }
+
+    function getMatchScoreText(match, side) {
+      const goals = side === 'home' ? match?.homeGoals : match?.awayGoals;
+      if (!hasOfficialPenalties(match)) return String(goals);
+      const penalties = side === 'home' ? match.homePenalties : match.awayPenalties;
+      return `${goals} (${penalties})`;
+    }
+
+    function getMatchModalTitle(match) {
+      if (!hasOfficialResult(match)) return `${match.home} vs ${match.away}`;
+      return `${match.home} ${getMatchScoreText(match, 'home')} vs ${getMatchScoreText(match, 'away')} ${match.away}`;
+    }
+
+    function getMatchStatusLabel(match) {
+      return hasOfficialResult(match) ? 'Finalizado' : 'Pendiente';
+    }
+
+    function getMatchStatusClass(match) {
+      return hasOfficialResult(match) ? 'finished' : 'pending';
+    }
+
+    function getMatchModalSubtitle(match) {
+      return `
+        <span>${escapeHtml(getPredictionDateFilterLabel(match))}</span>
+        <span class="match-status-pill ${getMatchStatusClass(match)}">${getMatchStatusLabel(match)}</span>
+      `;
+    }
+
     function canViewConsolidatedPredictionsForMatch(match) {
       return isAdmin || !isPredictionEditableForMatch(match);
     }
@@ -4225,13 +4331,17 @@
       }
 
       const overlay = document.getElementById('matchPredictionsOverlay');
+      if (overlay && overlay.parentElement !== document.body) {
+        document.body.appendChild(overlay);
+      }
       const title = document.getElementById('matchPredictionsTitle');
       const subtitle = document.getElementById('matchPredictionsSubtitle');
       const body = document.getElementById('matchPredictionsBody');
       if (!overlay || !title || !subtitle || !body) return;
 
-      title.innerText = `${match.home} vs ${match.away}`;
-      subtitle.innerText = getPredictionDateFilterLabel(match);
+      title.innerText = getMatchModalTitle(match);
+      subtitle.className = 'muted match-predictions-subtitle';
+      subtitle.innerHTML = getMatchModalSubtitle(match);
       body.innerHTML = getConsolidatedPredictionsForMatch(match.id).map(row => {
         const predictionText = row.prediction
           ? `${escapeHtml(row.prediction.home)} - ${escapeHtml(row.prediction.away)}`
@@ -4812,6 +4922,12 @@
       assertTest('empate correcto suma 1 punto', pointsFor({ matchId: 1, home: 1, away: 1 }, [{ id: 1, homeGoals: 2, awayGoals: 2 }]) === 1);
       assertTest('resultado incorrecto suma 0 puntos', pointsFor({ matchId: 1, home: 0, away: 1 }, testMatches) === 0);
       assertTest('sin resultado real suma 0 puntos', pointsFor({ matchId: 1, home: 2, away: 1 }, [{ id: 1, homeGoals: '', awayGoals: '' }]) === 0);
+      assertTest('modal muestra resultado real en titulo', getMatchModalTitle({ home: 'México', away: 'Sudáfrica', homeGoals: 1, awayGoals: 2 }) === 'México 1 vs 2 Sudáfrica');
+      assertTest('modal mantiene titulo simple sin resultado', getMatchModalTitle({ home: 'México', away: 'Sudáfrica', homeGoals: '', awayGoals: '' }) === 'México vs Sudáfrica');
+      assertTest('modal trata 0-0 como resultado valido en titulo', getMatchModalTitle({ home: 'México', away: 'Sudáfrica', homeGoals: 0, awayGoals: 0 }) === 'México 0 vs 0 Sudáfrica');
+      assertTest('modal muestra penales futuros en titulo', getMatchModalTitle({ home: 'México', away: 'Sudáfrica', homeGoals: 1, awayGoals: 1, homePenalties: 4, awayPenalties: 2 }) === 'México 1 (4) vs 1 (2) Sudáfrica');
+      assertTest('modal marca finalizado con resultado 0-0', getMatchStatusLabel({ homeGoals: 0, awayGoals: 0 }) === 'Finalizado');
+      assertTest('modal marca pendiente sin resultado', getMatchStatusLabel({ homeGoals: '', awayGoals: '' }) === 'Pendiente');
       const previousPlayers = players;
       const previousPredictions = predictions;
       const previousRankingPredictions = rankingPredictions;
@@ -4869,6 +4985,24 @@
         registeredUserProfiles = previousRegisteredUserProfiles;
       }
       assertTest('avatar sin foto usa iniciales del jugador', getAvatarDisplayValue(getAvatarForPlayer('Juan Perez')) === 'JP');
+      assertTest('iniciales de nombre simple usan primera letra', getInitials('Chris') === 'C');
+      assertTest('iniciales de nombre simple minuscula van en mayuscula', getInitials('nicolas') === 'N');
+      assertTest('iniciales de nombre compuesto usan dos palabras', getInitials('David Alejandro') === 'DA');
+      const previousUserProfilesForInitials = userProfilesByName;
+      try {
+        userProfilesByName = {
+          [String('Leandro').toLowerCase()]: normalizeAvatarSettings({ avatarType: 'initial', avatarValue: '', localAvatarPath: '' }),
+          [String('Sofiadb').toLowerCase()]: normalizeAvatarSettings({ avatarType: 'initial', avatarValue: '', localAvatarPath: '' }),
+          [String('Carlos Benítez').toLowerCase()]: normalizeAvatarSettings({ avatarType: 'initial', avatarValue: '', localAvatarPath: '' }),
+          [String('Jugador Foto').toLowerCase()]: normalizeAvatarSettings({ avatarType: 'initial', avatarValue: '', localAvatarPath: 'img/avatars/jugador.jpg' })
+        };
+        assertTest('perfil registrado sin avatar usa inicial del jugador simple', getAvatarDisplayValue(getAvatarForPlayer('Leandro')) === 'L');
+        assertTest('perfil registrado sin avatar no cae al usuario actual', getAvatarDisplayValue(getAvatarForPlayer('Sofiadb')) === 'S');
+        assertTest('perfil registrado sin avatar usa iniciales compuestas', getAvatarDisplayValue(getAvatarForPlayer('Carlos Benítez')) === 'CB');
+        assertTest('perfil registrado con foto mantiene avatar local', getAvatarForPlayer('Jugador Foto').localAvatarPath === 'img/avatars/jugador.jpg');
+      } finally {
+        userProfilesByName = previousUserProfilesForInitials;
+      }
       renderAvatarElement(document.getElementById('profileAvatar'), normalizeAvatarSettings({
         avatarType: 'initial',
         avatarValue: 'AS',
@@ -4928,6 +5062,11 @@
         assertTest('detalle consolidado calcula puntos con pointsFor', predictionRows.find(row => row.player === 'Ana').points === 3);
         openMatchPredictionsModal(9101);
         assertTest('modal consolidado muestra Sin cargar', document.getElementById('matchPredictionsBody').innerHTML.includes('Sin cargar'));
+        closeMatchPredictionsModal();
+        matches.push({ id: 9103, date: '19/06/2026', time: '16:00', group: 'Fecha 2 - Grupo D', home: 'Estados Unidos', away: 'Australia', homeGoals: '', awayGoals: '' });
+        openMatchPredictionsModal(9103);
+        assertTest('modal pendiente muestra titulo del partido', document.getElementById('matchPredictionsTitle').innerText === 'Estados Unidos vs Australia');
+        assertTest('modal pendiente muestra pill pendiente', document.getElementById('matchPredictionsSubtitle').innerText.includes('Pendiente'));
         closeMatchPredictionsModal();
       } finally {
         isAdmin = previousIsAdminForPredictionDetail;
