@@ -743,6 +743,80 @@
       flex-wrap: wrap;
     }
 
+    .prediction-view-button {
+      min-height: 34px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .match-predictions-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(15, 23, 42, .68);
+    }
+
+    .match-predictions-overlay.open {
+      display: flex;
+    }
+
+    .match-predictions-modal {
+      width: min(760px, 100%);
+      max-height: min(82vh, 760px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, .34);
+    }
+
+    .match-predictions-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--border);
+      background: var(--soft);
+    }
+
+    .match-predictions-header h3 {
+      margin: 0 0 6px;
+    }
+
+    .match-predictions-close {
+      min-width: 40px;
+      min-height: 40px;
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 20px;
+      line-height: 1;
+    }
+
+    .match-predictions-body {
+      overflow: auto;
+      padding: 0 20px 20px;
+    }
+
+    .match-predictions-table {
+      width: 100%;
+      min-width: 0;
+    }
+
+    .match-predictions-empty {
+      color: var(--muted);
+      font-weight: 800;
+    }
+
     .rank-medal {
       font-size: 20px;
       display: inline-block;
@@ -1303,6 +1377,29 @@
         padding: 8px 4px;
       }
 
+      .match-predictions-overlay {
+        align-items: flex-end;
+        padding: 8px;
+      }
+
+      .match-predictions-modal {
+        width: 100%;
+        max-height: 92vh;
+        border-radius: 12px;
+      }
+
+      .match-predictions-header {
+        padding: 14px;
+      }
+
+      .match-predictions-body {
+        padding: 0 14px 14px;
+      }
+
+      .match-predictions-table {
+        min-width: 420px;
+      }
+
       input,
       select,
       button.primary,
@@ -1831,6 +1928,30 @@
         </table>
       </div>
 
+      <div id="matchPredictionsOverlay" class="match-predictions-overlay" role="dialog" aria-modal="true" aria-labelledby="matchPredictionsTitle" onclick="handleMatchPredictionsOverlayClick(event)">
+        <div class="match-predictions-modal">
+          <div class="match-predictions-header">
+            <div>
+              <h3 id="matchPredictionsTitle">Pronósticos del partido</h3>
+              <p class="muted" id="matchPredictionsSubtitle"></p>
+            </div>
+            <button type="button" class="secondary-action match-predictions-close" aria-label="Cerrar" onclick="closeMatchPredictionsModal()">×</button>
+          </div>
+          <div class="match-predictions-body">
+            <table class="match-predictions-table">
+              <thead>
+                <tr>
+                  <th>Jugador</th>
+                  <th>Pronóstico</th>
+                  <th>Puntos</th>
+                </tr>
+              </thead>
+              <tbody id="matchPredictionsBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div class="card table-wrap" id="consolidatedPredictionsCard" style="display:none">
         <h2>📊 Pronósticos consolidados</h2>
         <p class="muted" id="consolidatedPredictionsProgress"></p>
@@ -2266,7 +2387,104 @@
       ];
     }
 
-    const defaultMatches = buildDefaultMatches();
+    const OFFICIAL_MATCH_TIMES_ARGENTINA = {
+      1: '16:00',
+      2: '23:00',
+      3: '16:00',
+      4: '22:00',
+      5: '01:00',
+      6: '16:00',
+      7: '19:00',
+      8: '22:00',
+      9: '14:00',
+      10: '17:00',
+      11: '20:00',
+      12: '23:00',
+      13: '13:00',
+      14: '16:00',
+      15: '19:00',
+      16: '22:00',
+      17: '01:00',
+      18: '16:00',
+      19: '19:00',
+      20: '22:00',
+      21: '14:00',
+      22: '17:00',
+      23: '20:00',
+      24: '23:00',
+      25: '13:00',
+      26: '16:00',
+      27: '19:00',
+      28: '22:00',
+      29: '00:00',
+      30: '16:00',
+      31: '19:00',
+      32: '21:30',
+      33: '01:00',
+      34: '14:00',
+      35: '17:00',
+      36: '21:00',
+      37: '19:00',
+      38: '13:00',
+      39: '16:00',
+      40: '22:00',
+      41: '21:00',
+      42: '18:00',
+      43: '14:00',
+      44: '00:00',
+      45: '17:00',
+      46: '20:00',
+      47: '14:00',
+      48: '23:00',
+      49: '19:00',
+      50: '19:00',
+      51: '16:00',
+      52: '16:00',
+      53: '22:00',
+      54: '22:00',
+      55: '17:00',
+      56: '17:00',
+      57: '20:00',
+      58: '20:00',
+      59: '23:00',
+      60: '23:00',
+      61: '16:00',
+      62: '16:00',
+      63: '00:00',
+      64: '00:00',
+      65: '21:00',
+      66: '21:00',
+      67: '18:00',
+      68: '18:00',
+      69: '23:00',
+      70: '23:00',
+      71: '20:30',
+      72: '20:30'
+    };
+
+    function buildKickoffFromDateAndTime(dateText, timeText) {
+      const [day, month, year] = String(dateText || '').split('/').map(Number);
+      const time = String(timeText || '').trim();
+      const match = time.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+      if (!day || !month || !year || !match) return '';
+
+      return `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${match[1]}:${match[2]}:00-03:00`;
+    }
+
+    function applyOfficialMatchTimes(matchList) {
+      if (!Array.isArray(matchList)) return matchList;
+      return matchList.map(match => {
+        const time = OFFICIAL_MATCH_TIMES_ARGENTINA[match?.id];
+        if (!time) return match;
+        return {
+          ...match,
+          time,
+          kickoff: buildKickoffFromDateAndTime(match.date, time)
+        };
+      });
+    }
+
+    const defaultMatches = applyOfficialMatchTimes(buildDefaultMatches());
 
     function countMatchesByDate(matchList, date) {
       return matchList.filter(match => match.date === date).length;
@@ -2290,6 +2508,7 @@
       matches = defaultMatches;
       localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
     }
+    matches = applyOfficialMatchTimes(matches);
 
     let predictions = safeParse(STORAGE_KEYS.predictions, []);
     if (!Array.isArray(predictions)) predictions = [];
@@ -2568,6 +2787,66 @@
 
     function isPredictionEditingBlocked() {
       return arePredictionsLocked;
+    }
+
+    function getFixtureDateParts(dateText) {
+      const [day, month, year] = String(dateText || '').split('/').map(Number);
+      if (!day || !month || !year) return null;
+      return { day, month, year };
+    }
+
+    function buildArgentinaDateTime(dateText, timeText = '00:00') {
+      const parts = getFixtureDateParts(dateText);
+      if (!parts) return null;
+
+      const time = String(timeText || '').trim();
+      const match = time.match(/^([01]\d|2[0-3]):([0-5]\d)$/);
+      if (!match) return null;
+
+      const year = String(parts.year).padStart(4, '0');
+      const month = String(parts.month).padStart(2, '0');
+      const day = String(parts.day).padStart(2, '0');
+      return new Date(`${year}-${month}-${day}T${match[1]}:${match[2]}:00-03:00`);
+    }
+
+    function getMatchDay(match) {
+      return buildArgentinaDateTime(match?.date, '00:00');
+    }
+
+    function isMatchStatusClosed(match) {
+      const status = String(match?.status || '').trim().toLowerCase();
+      return status === 'closed' || status === 'finished';
+    }
+
+    function getMatchStartDateTime(match) {
+      if (match?.kickoff) {
+        const kickoff = new Date(match.kickoff);
+        if (!Number.isNaN(kickoff.getTime())) return kickoff;
+      }
+
+      const startWithTime = buildArgentinaDateTime(match?.date, match?.time);
+      if (startWithTime) return startWithTime;
+
+      return getMatchDay(match);
+    }
+
+    function hasMatchStarted(match, now = new Date()) {
+      const matchStart = getMatchStartDateTime(match);
+      if (!matchStart) return false;
+      return matchStart <= now;
+    }
+
+    function isPredictionEditableForMatch(match, now = new Date()) {
+      return !arePredictionsLocked
+        && !isMatchStatusClosed(match)
+        && !hasMatchStarted(match, now);
+    }
+
+    function getPredictionBlockedReason(match) {
+      if (arePredictionsLocked) return 'Cerrado';
+      if (isMatchStatusClosed(match)) return 'Partido cerrado';
+      if (hasMatchStarted(match)) return 'Partido iniciado';
+      return '';
     }
 
     function isResultEditingBlocked() {
@@ -3139,7 +3418,7 @@
         const cloudData = await window.prodeFirebase.loadData();
         if (cloudData) {
           if (Array.isArray(cloudData.players)) players = cloudData.players;
-          if (Array.isArray(cloudData.matches)) matches = cloudData.matches;
+          if (Array.isArray(cloudData.matches)) matches = applyOfficialMatchTimes(cloudData.matches);
           const legacyPredictions = normalizePredictionList(cloudData.predictions);
           legacyRankingPredictions = legacyPredictions;
           if (typeof cloudData.isResultLocked === 'boolean') isResultLocked = cloudData.isResultLocked;
@@ -3399,18 +3678,6 @@
       return (dateA && dateB ? dateA - dateB : 0) || a.id - b.id;
     }
 
-    const PREDICTION_STAGE_FILTERS = [
-      'Fecha 1',
-      'Fecha 2',
-      'Fecha 3',
-      '16avos',
-      '8vos',
-      '4tos',
-      'Semifinal',
-      '3° Puesto',
-      'Final'
-    ];
-
     function getPredictionStageName(match) {
       const rawText = [
         match?.group,
@@ -3434,6 +3701,62 @@
       if (/final/.test(text)) return 'Final';
 
       return '';
+    }
+
+    function getShortFixtureDate(dateText) {
+      const parts = getFixtureDateParts(dateText);
+      if (!parts) return String(dateText || '');
+      const day = String(parts.day).padStart(2, '0');
+      const month = String(parts.month).padStart(2, '0');
+      const year = String(parts.year).slice(-2);
+      return `${day}/${month}/${year}`;
+    }
+
+    function getMatchTimeText(match) {
+      const time = String(match?.time || '').trim();
+      if (/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) return time;
+
+      if (match?.kickoff) {
+        const kickoff = new Date(match.kickoff);
+        if (!Number.isNaN(kickoff.getTime())) {
+          return new Intl.DateTimeFormat('es-AR', {
+            timeZone: 'America/Argentina/Buenos_Aires',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          }).format(kickoff);
+        }
+      }
+
+      return '';
+    }
+
+    function getPredictionDateFilterValue(match) {
+      return [
+        getPredictionStageName(match),
+        match?.date || '',
+        getMatchTimeText(match)
+      ].join('|');
+    }
+
+    function getPredictionDateFilterLabel(match) {
+      const stage = getPredictionStageName(match) || getFixtureStageDisplayName(match);
+      const date = getShortFixtureDate(match?.date);
+      const time = getMatchTimeText(match);
+      return [stage, date, time].filter(Boolean).join(' - ').replace(/ - (\d{2}:\d{2})$/, ' $1');
+    }
+
+    function getPredictionDateFilterOptions() {
+      const optionsByValue = new Map();
+      [...matches].sort(compareFixtureMatches).forEach(match => {
+        const value = getPredictionDateFilterValue(match);
+        if (!value || optionsByValue.has(value)) return;
+        optionsByValue.set(value, {
+          value,
+          label: getPredictionDateFilterLabel(match)
+        });
+      });
+      return [...optionsByValue.values()];
     }
 
     function renderDates() {
@@ -3640,11 +3963,6 @@
 
     async function savePrediction() {
       if (!requireAuth('guardar pronóstico')) return;
-      if (isPredictionEditingBlocked()) {
-        setPredictionStatus('Pronósticos cerrados: no se pueden cargar ni modificar.', true);
-        renderLockStatuses();
-        return;
-      }
       const player = currentProfileName;
       const matchIdRaw = document.getElementById('matchSelect').value;
       const homeRaw = document.getElementById('predHome').value;
@@ -3652,6 +3970,14 @@
       const matchId = Number(matchIdRaw);
       const home = Number(homeRaw);
       const away = Number(awayRaw);
+      const match = matches.find(item => item.id === matchId);
+
+      if (!isPredictionEditableForMatch(match)) {
+        const reason = getPredictionBlockedReason(match) || 'Pronóstico cerrado';
+        setPredictionStatus(`${reason}: no se puede cargar ni modificar este partido.`, true);
+        renderLockStatuses();
+        return;
+      }
 
       if (!player || !matchIdRaw || homeRaw === '' || awayRaw === '' || Number.isNaN(matchId) || Number.isNaN(home) || Number.isNaN(away) || home < 0 || away < 0) {
         setPredictionStatus('Completá partido y goles con números válidos.', true);
@@ -3674,9 +4000,11 @@
 
     async function savePredictionRow(matchId) {
       if (!requireAuth('guardar pronostico')) return;
-      if (isPredictionEditingBlocked()) {
-        setPredictionStatus('Pronósticos cerrados: no se pueden cargar ni modificar.', true);
-        renderLockStatuses();
+      const match = matches.find(item => item.id === matchId);
+      if (!isPredictionEditableForMatch(match)) {
+        const reason = getPredictionBlockedReason(match) || 'Pronóstico cerrado';
+        setPredictionStatus(`${reason}: no se puede cargar ni modificar este partido.`, true);
+        renderAll();
         return;
       }
 
@@ -3710,7 +4038,13 @@
     }
 
     function editPredictionRow(matchId) {
-      if (arePredictionsLocked) return;
+      const match = matches.find(item => item.id === matchId);
+      if (!isPredictionEditableForMatch(match)) {
+        const reason = getPredictionBlockedReason(match) || 'Pronóstico cerrado';
+        setPredictionStatus(`${reason}: no se puede editar este partido.`, true);
+        renderAll();
+        return;
+      }
       editingPredictionRows[matchId] = true;
       renderPredictions();
     }
@@ -3759,14 +4093,14 @@
 
       const currentDate = dateSelect.value;
       const currentGroup = groupSelect.value;
-      const dates = PREDICTION_STAGE_FILTERS;
+      const dates = getPredictionDateFilterOptions();
       const groups = [...new Set(matches.map(match => getSimpleGroupName(match.group)).filter(Boolean))]
         .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
 
       dateSelect.innerHTML = '<option value="">Todas las fechas/fases</option>' + dates
-        .map(date => `<option value="${escapeHtml(date)}">${escapeHtml(date)}</option>`)
+        .map(date => `<option value="${escapeHtml(date.value)}">${escapeHtml(date.label)}</option>`)
         .join('');
-      dateSelect.value = dates.includes(currentDate) ? currentDate : '';
+      dateSelect.value = dates.some(date => date.value === currentDate) ? currentDate : '';
 
       groupSelect.innerHTML = '<option value="">Todos los grupos</option>' + groups
         .map(group => `<option value="${escapeHtml(group)}">${escapeHtml(group)}</option>`)
@@ -3795,7 +4129,7 @@
     function getFilteredPredictionMatches() {
       const filters = getPredictionFilters();
       return matches.filter(match => {
-        const matchDate = getPredictionStageName(match);
+        const matchDate = getPredictionDateFilterValue(match);
         const matchGroup = getPredictionGroupPhaseName(match);
         const matchText = `${match.home} ${match.away}`.toLowerCase();
         return (!filters.date || matchDate === filters.date)
@@ -3810,7 +4144,7 @@
         .map(prediction => ({ prediction, match: matches.find(item => item.id === prediction.matchId) }))
         .filter(row => {
           if (!row.match) return false;
-          const matchDate = getPredictionStageName(row.match);
+          const matchDate = getPredictionDateFilterValue(row.match);
           const matchGroup = getPredictionGroupPhaseName(row.match);
           const matchText = `${row.match.home} ${row.match.away}`.toLowerCase();
           return (!filters.date || matchDate === filters.date)
@@ -3819,41 +4153,99 @@
         });
     }
 
-    function renderConsolidatedPredictions() {
-      const card = document.getElementById('consolidatedPredictionsCard');
-      const body = document.getElementById('consolidatedPredictionsBody');
-      const progress = document.getElementById('consolidatedPredictionsProgress');
-      if (!card || !body) return;
+    function getConsolidatedPredictionSource() {
+      return dedupePredictionList([...rankingPredictions, ...predictions]);
+    }
 
-      card.style.display = isAdmin ? '' : 'none';
-      if (!isAdmin) {
-        body.innerHTML = '';
-        if (progress) progress.innerText = '';
+    function getPlayersForPredictionDetail(sourcePredictions = getConsolidatedPredictionSource()) {
+      const byName = new Map();
+      getVisiblePlayers().forEach(player => {
+        if (player?.name) byName.set(normalizePlayerName(player.name), player.name);
+      });
+      sourcePredictions.forEach(prediction => {
+        if (prediction?.player) byName.set(normalizePlayerName(prediction.player), prediction.player);
+      });
+      return [...byName.values()].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+    }
+
+    function getConsolidatedPredictionsForMatch(matchId) {
+      const sourcePredictions = getConsolidatedPredictionSource();
+      const predictionsByPlayer = new Map(
+        sourcePredictions
+          .filter(prediction => prediction.matchId === matchId)
+          .map(prediction => [normalizePlayerName(prediction.player), prediction])
+      );
+
+      return getPlayersForPredictionDetail(sourcePredictions).map(player => {
+        const prediction = predictionsByPlayer.get(normalizePlayerName(player)) || null;
+        return {
+          player,
+          prediction,
+          points: prediction ? pointsFor(prediction) : 0
+        };
+      });
+    }
+
+    function canViewConsolidatedPredictionsForMatch(match) {
+      return isAdmin || !isPredictionEditableForMatch(match);
+    }
+
+    function openMatchPredictionsModal(matchId) {
+      const match = matches.find(item => item.id === matchId);
+      if (!match) return;
+      if (!canViewConsolidatedPredictionsForMatch(match)) {
+        setPredictionStatus('Los pronósticos consolidados se habilitan cuando el partido queda cerrado.', true);
         return;
       }
 
-      const consolidatedSource = dedupePredictionList([...rankingPredictions, ...predictions]);
-      const rows = filterPredictionRowsByCurrentFilters(consolidatedSource);
+      const overlay = document.getElementById('matchPredictionsOverlay');
+      const title = document.getElementById('matchPredictionsTitle');
+      const subtitle = document.getElementById('matchPredictionsSubtitle');
+      const body = document.getElementById('matchPredictionsBody');
+      if (!overlay || !title || !subtitle || !body) return;
 
-      body.innerHTML = rows.map(row => {
-        const { match, prediction } = row;
+      title.innerText = `${match.home} vs ${match.away}`;
+      subtitle.innerText = getPredictionDateFilterLabel(match);
+      body.innerHTML = getConsolidatedPredictionsForMatch(match.id).map(row => {
+        const predictionText = row.prediction
+          ? `${escapeHtml(row.prediction.home)} - ${escapeHtml(row.prediction.away)}`
+          : '<span class="match-predictions-empty">Sin cargar</span>';
         return `
           <tr>
-            <td>${escapeHtml(prediction?.player || '')}</td>
-            <td>${escapeHtml(getPredictionStageName(match))}</td>
-            <td><span class="group-badge">${escapeHtml(getPredictionGroupPhaseName(match))}</span></td>
-            <td>${renderTeam(match.home)}</td>
-            <td>${escapeHtml(prediction.home)}</td>
-            <td>${escapeHtml(prediction.away)}</td>
-            <td>${renderTeam(match.away)}</td>
-            <td><span class="points-badge">${pointsFor(prediction)}</span></td>
+            <td>${escapeHtml(row.player)}</td>
+            <td>${predictionText}</td>
+            <td><span class="points-badge">${row.points}</span></td>
           </tr>
         `;
       }).join('');
 
-      if (progress) {
-        progress.innerText = `Vista consolidada: ${consolidatedSource.length} pronósticos únicos.`;
+      overlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMatchPredictionsModal() {
+      const overlay = document.getElementById('matchPredictionsOverlay');
+      if (overlay) overlay.classList.remove('open');
+      document.body.style.overflow = '';
+    }
+
+    function handleMatchPredictionsOverlayClick(event) {
+      if (event?.target?.id === 'matchPredictionsOverlay') {
+        closeMatchPredictionsModal();
       }
+    }
+
+    window.addEventListener('keydown', event => {
+      if (event.key === 'Escape') closeMatchPredictionsModal();
+    });
+
+    function renderConsolidatedPredictions() {
+      const card = document.getElementById('consolidatedPredictionsCard');
+      const body = document.getElementById('consolidatedPredictionsBody');
+      const progress = document.getElementById('consolidatedPredictionsProgress');
+      if (card) card.style.display = 'none';
+      if (body) body.innerHTML = '';
+      if (progress) progress.innerText = '';
     }
 
     function renderPredictions() {
@@ -3886,8 +4278,9 @@
 
         const hasPrediction = Boolean(prediction);
         const isEditing = !hasPrediction || editingPredictionRows[match.id];
-        const canEdit = !arePredictionsLocked;
+        const canEdit = isPredictionEditableForMatch(match);
         const showInputs = canEdit && isEditing;
+        const canViewDetails = canViewConsolidatedPredictionsForMatch(match);
         const homeCell = showInputs
           ? `<input id="predictionHome-${match.id}" data-prediction-row-input class="score-input" type="number" min="0" value="${escapeHtml(home)}">`
           : escapeHtml(home);
@@ -3903,13 +4296,16 @@
           if (canEdit) {
             rowAction += `<button class="secondary-action" onclick="editPredictionRow(${match.id})">Editar</button>`;
           }
-        } else if (arePredictionsLocked) {
-          rowAction = '<span class="muted">Cerrado</span>';
+        } else if (!canEdit) {
+          rowAction = `<span class="muted">${escapeHtml(getPredictionBlockedReason(match) || 'Cerrado')}</span>`;
+        }
+        if (canViewDetails) {
+          rowAction += `<button class="secondary-action prediction-view-button" title="Ver pronósticos del partido" onclick="openMatchPredictionsModal(${match.id})">Ver</button>`;
         }
 
         return `
           <tr>
-            <td>${escapeHtml(getPredictionStageName(match))}</td>
+            <td>${escapeHtml(getPredictionDateFilterLabel(match))}</td>
             <td><span class="group-badge">${escapeHtml(getPredictionGroupPhaseName(match))}</span></td>
             <td>${renderTeam(match.home)}</td>
             <td>${homeCell}</td>
@@ -4307,6 +4703,9 @@
       assertTest('defaultPlayers tiene 6 jugadores', defaultPlayers.length === 6);
       assertTest('primer jugador corregido', defaultPlayers[0] === 'Alejandro Mc Farlane');
       assertTest('fixture tiene 72 partidos', defaultMatches.length === 72);
+      assertTest('fixture oficial tiene horarios para 72 partidos', defaultMatches.every(match => match.time && match.kickoff));
+      assertTest('horario FIFA convertido a Argentina para USA-Paraguay', defaultMatches.find(match => match.id === 4)?.kickoff === '2026-06-12T22:00:00-03:00');
+      assertTest('horario FIFA convertido a Argentina para Corea-Chequia', defaultMatches.find(match => match.id === 2)?.time === '23:00');
       assertTest('getSimpleGroupName detecta Grupo A', getSimpleGroupName('Fecha 1 - Grupo A') === 'Grupo A');
       assertTest('fixture tiene fechas unicas', [...new Set(defaultMatches.map(m => m.date))].length > 1);
       assertTest('primer fecha del fixture es 11/06/2026', defaultMatches[0].date === '11/06/2026');
@@ -4456,12 +4855,64 @@
       isResultLocked = true;
       assertTest('bloqueo de pronósticos activo bloquea edicion', isPredictionEditingBlocked() === true);
       assertTest('bloqueo de resultados activo bloquea edicion', isResultEditingBlocked() === true);
+      assertTest('bloqueo global bloquea partido futuro', isPredictionEditableForMatch({ date: '13/06/2026' }, new Date(2026, 5, 12, 12)) === false);
       arePredictionsLocked = false;
       isResultLocked = false;
       assertTest('bloqueo de pronósticos inactivo permite edicion', isPredictionEditingBlocked() === false);
       assertTest('bloqueo de resultados inactivo permite edicion', isResultEditingBlocked() === false);
+      assertTest('partido futuro sin status permite pronostico', isPredictionEditableForMatch({ date: '13/06/2026' }, new Date(2026, 5, 12, 12)) === true);
+      assertTest('partido de hoy bloquea pronostico', isPredictionEditableForMatch({ date: '12/06/2026' }, new Date(2026, 5, 12, 12)) === false);
+      assertTest('partido pasado bloquea pronostico', isPredictionEditableForMatch({ date: '11/06/2026' }, new Date(2026, 5, 12, 12)) === false);
+      assertTest('partido con hora permite antes del inicio Argentina', isPredictionEditableForMatch({ date: '12/06/2026', time: '22:00' }, new Date('2026-06-12T21:59:00-03:00')) === true);
+      assertTest('partido con hora bloquea al inicio Argentina', isPredictionEditableForMatch({ date: '12/06/2026', time: '22:00' }, new Date('2026-06-12T22:00:00-03:00')) === false);
+      assertTest('partido con kickoff bloquea al inicio Argentina', isPredictionEditableForMatch({ kickoff: '2026-06-12T22:00:00-03:00' }, new Date('2026-06-12T22:00:00-03:00')) === false);
+      assertTest('partido closed bloquea pronostico futuro', isPredictionEditableForMatch({ date: '13/06/2026', status: 'closed' }, new Date(2026, 5, 12, 12)) === false);
+      assertTest('partido finished bloquea pronostico futuro', isPredictionEditableForMatch({ date: '13/06/2026', status: 'finished' }, new Date(2026, 5, 12, 12)) === false);
+      assertTest('filtro pronosticos muestra fecha corta', getPredictionDateFilterLabel({ date: '11/06/2026', group: 'Fecha 1 - Grupo A' }) === 'Fecha 1 - 11/06/26');
+      assertTest('filtro pronosticos muestra hora si existe', getPredictionDateFilterLabel({ date: '12/06/2026', time: '22:00', group: 'Fecha 1 - Grupo B' }) === 'Fecha 1 - 12/06/26 22:00');
+      assertTest('filtro pronosticos muestra horario oficial del fixture', getPredictionDateFilterLabel(defaultMatches.find(match => match.id === 4)) === 'Fecha 1 - 12/06/26 22:00');
       arePredictionsLocked = previousPredictionLock;
       isResultLocked = previousResultLock;
+      const previousIsAdminForPredictionDetail = isAdmin;
+      const previousPlayersForPredictionDetail = players;
+      const previousPredictionsForPredictionDetail = predictions;
+      const previousRankingPredictionsForPredictionDetail = rankingPredictions;
+      const previousMatchesForPredictionDetail = matches;
+      const previousRegisteredUserProfilesForPredictionDetail = registeredUserProfiles;
+      try {
+        isAdmin = false;
+        arePredictionsLocked = false;
+        players = ['Ana', 'Bruno'];
+        registeredUserProfiles = [];
+        matches = [
+          { id: 9101, date: '20/07/2026', time: '22:00', home: 'Equipo A', away: 'Equipo B', homeGoals: 2, awayGoals: 1 },
+          { id: 9102, date: '11/06/2026', time: '22:00', home: 'Equipo C', away: 'Equipo D', homeGoals: 0, awayGoals: 0 }
+        ];
+        predictions = [];
+        rankingPredictions = [
+          { player: 'Ana', matchId: 9101, home: 2, away: 1 }
+        ];
+        assertTest('usuario comun no ve consolidado de partido editable', canViewConsolidatedPredictionsForMatch(matches[0]) === false);
+        assertTest('usuario comun ve consolidado de partido cerrado por fecha', canViewConsolidatedPredictionsForMatch(matches[1]) === true);
+        isAdmin = true;
+        assertTest('admin ve consolidado aunque el partido este editable', canViewConsolidatedPredictionsForMatch(matches[0]) === true);
+        const predictionRows = getConsolidatedPredictionsForMatch(9101);
+        assertTest('detalle consolidado incluye jugadores visibles', predictionRows.map(row => row.player).join(',') === 'Ana,Bruno');
+        assertTest('detalle consolidado marca jugador sin pronostico', predictionRows.find(row => row.player === 'Bruno').prediction === null);
+        assertTest('detalle consolidado calcula puntos con pointsFor', predictionRows.find(row => row.player === 'Ana').points === 3);
+        openMatchPredictionsModal(9101);
+        assertTest('modal consolidado muestra Sin cargar', document.getElementById('matchPredictionsBody').innerHTML.includes('Sin cargar'));
+        closeMatchPredictionsModal();
+      } finally {
+        isAdmin = previousIsAdminForPredictionDetail;
+        arePredictionsLocked = previousPredictionLock;
+        players = previousPlayersForPredictionDetail;
+        predictions = previousPredictionsForPredictionDetail;
+        rankingPredictions = previousRankingPredictionsForPredictionDetail;
+        matches = previousMatchesForPredictionDetail;
+        registeredUserProfiles = previousRegisteredUserProfilesForPredictionDetail;
+        closeMatchPredictionsModal();
+      }
       assertTest('normalizacion de jugador limpia espacios', normalizePlayerName('  Juan   Perez ') === 'juan perez');
       assertTest('playerExists detecta duplicado simple', playerExists(defaultPlayers[0].toUpperCase()) === true);
       const duplicatePredictions = [
