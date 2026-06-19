@@ -2872,14 +2872,40 @@
         .toLocaleLowerCase('es');
     }
 
+    const LEANDRO_SANCTIONED_PLAYER_KEYS = [
+      normalizePlayerName('Leandro Iriarte'),
+      normalizePlayerName('Leandro')
+    ];
+    const LEANDRO_SANCTION_CUTOFF = new Date('2026-06-18T19:00:00-03:00');
+
+    function isLeandroSanctionedPlayer(playerName) {
+      return LEANDRO_SANCTIONED_PLAYER_KEYS.includes(normalizePlayerName(playerName));
+    }
+
+    function isLeandroSanctionedPrediction(prediction) {
+      if (!isLeandroSanctionedPlayer(prediction?.player)) return false;
+
+      const match = matches.find(item => item.id === Number(prediction?.matchId));
+      const kickoff = getMatchStartDateTime(match);
+      if (!kickoff || Number.isNaN(kickoff.getTime())) return false;
+
+      return kickoff <= LEANDRO_SANCTION_CUTOFF;
+    }
+
+    function applyPredictionSanctions(predictionList) {
+      if (!Array.isArray(predictionList)) return [];
+      return predictionList.filter(prediction => !isLeandroSanctionedPrediction(prediction));
+    }
+
     function playerExists(name) {
       const normalized = normalizePlayerName(name);
       return getVisiblePlayers().some(player => normalizePlayerName(player.name) === normalized);
     }
 
     function getPredictionProgress(player = currentProfileName) {
+      const playerKey = normalizePlayerName(player);
       const playerPredictions = dedupePredictionList(
-        predictions.filter(prediction => prediction.player === player)
+        applyPredictionSanctions(predictions).filter(prediction => normalizePlayerName(prediction.player) === playerKey)
       );
       return {
         done: playerPredictions.length,
@@ -4118,7 +4144,7 @@
 
     function getPredictionForMatch(match, sourcePredictions = predictions) {
       if (!match) return null;
-      return dedupePredictionList(sourcePredictions)
+      return dedupePredictionList(applyPredictionSanctions(sourcePredictions))
         .find(prediction => prediction.matchId === match.id) || null;
     }
 
@@ -4154,7 +4180,7 @@
     }
 
     function getConsolidatedPredictionSource() {
-      return dedupePredictionList([...rankingPredictions, ...predictions]);
+      return dedupePredictionList(applyPredictionSanctions([...rankingPredictions, ...predictions]));
     }
 
     function getPlayersForPredictionDetail(sourcePredictions = getConsolidatedPredictionSource()) {
@@ -4337,7 +4363,7 @@
     }
 
     function getRankingTotals() {
-      const sourcePredictions = dedupePredictionList(rankingPredictions.length ? rankingPredictions : predictions);
+      const sourcePredictions = dedupePredictionList(applyPredictionSanctions(rankingPredictions.length ? rankingPredictions : predictions));
       const rankingPlayers = [...new Set([
         ...players,
         ...sourcePredictions.map(prediction => prediction.player).filter(Boolean)
@@ -4911,6 +4937,55 @@
         rankingPredictions = previousRankingPredictionsForPredictionDetail;
         matches = previousMatchesForPredictionDetail;
         registeredUserProfiles = previousRegisteredUserProfilesForPredictionDetail;
+        closeMatchPredictionsModal();
+      }
+      const previousIsAdminForLeandroSanction = isAdmin;
+      const previousPlayersForLeandroSanction = players;
+      const previousPredictionsForLeandroSanction = predictions;
+      const previousRankingPredictionsForLeandroSanction = rankingPredictions;
+      const previousMatchesForLeandroSanction = matches;
+      const previousRegisteredUserProfilesForLeandroSanction = registeredUserProfiles;
+      try {
+        isAdmin = true;
+        players = ['Leandro Iriarte', 'Ana'];
+        registeredUserProfiles = [];
+        matches = defaultMatches.map(match => ({
+          ...match,
+          homeGoals: match.id === 1 || match.id === 27 || match.id === 28 ? 2 : match.homeGoals,
+          awayGoals: match.id === 1 || match.id === 27 || match.id === 28 ? 1 : match.awayGoals
+        }));
+        predictions = [
+          { player: 'Leandro', matchId: 1, home: 2, away: 0 },
+          { player: 'Leandro', matchId: 27, home: 2, away: 1 },
+          { player: 'Leandro Iriarte', matchId: 28, home: 2, away: 1 }
+        ];
+        rankingPredictions = [
+          { player: 'Leandro', matchId: 1, home: 2, away: 0 },
+          { player: 'Leandro', matchId: 27, home: 2, away: 1 },
+          { player: 'Leandro Iriarte', matchId: 28, home: 2, away: 1 },
+          { player: 'Ana', matchId: 27, home: 2, away: 1 }
+        ];
+        assertTest('sancion Leandro incluye ID 27', isLeandroSanctionedPrediction({ player: 'Leandro Iriarte', matchId: 27, home: 2, away: 1 }) === true);
+        assertTest('sancion Leandro detecta alias corto', isLeandroSanctionedPrediction({ player: 'Leandro', matchId: 1, home: 2, away: 0 }) === true);
+        assertTest('sancion Leandro no incluye ID 28', isLeandroSanctionedPrediction({ player: 'Leandro Iriarte', matchId: 28, home: 2, away: 1 }) === false);
+        assertTest('sancion no afecta a otros jugadores', applyPredictionSanctions(rankingPredictions).some(prediction => prediction.player === 'Ana' && prediction.matchId === 27));
+        const leandroTotal = getRankingTotals().find(row => row.player === 'Leandro Iriarte');
+        assertTest('Leandro no suma puntos en partidos sancionados', leandroTotal?.points === 3);
+        assertTest('vista de Leandro muestra ID 1 sin pronostico', getPredictionForMatch(matches.find(match => match.id === 1), predictions) === null);
+        assertTest('vista de Leandro muestra ID 27 sin pronostico', getPredictionForMatch(matches.find(match => match.id === 27), predictions) === null);
+        assertTest('vista de Leandro conserva ID 28 fuera de sancion', getPredictionForMatch(matches.find(match => match.id === 28), predictions)?.home === 2);
+        openMatchPredictionsModal(1);
+        const leandroModalRow = [...document.querySelectorAll('#matchPredictionsBody tr')]
+          .find(row => row.textContent.includes('Leandro Iriarte'));
+        assertTest('Leandro aparece Sin cargar en modal de Mexico vs Sudafrica', leandroModalRow?.textContent.includes('Sin cargar') === true);
+        closeMatchPredictionsModal();
+      } finally {
+        isAdmin = previousIsAdminForLeandroSanction;
+        players = previousPlayersForLeandroSanction;
+        predictions = previousPredictionsForLeandroSanction;
+        rankingPredictions = previousRankingPredictionsForLeandroSanction;
+        matches = previousMatchesForLeandroSanction;
+        registeredUserProfiles = previousRegisteredUserProfilesForLeandroSanction;
         closeMatchPredictionsModal();
       }
       assertTest('normalizacion de jugador limpia espacios', normalizePlayerName('  Juan   Perez ') === 'juan perez');
