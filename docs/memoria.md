@@ -96,7 +96,11 @@ El proyecto está implementado como una **Single Page Application (SPA) estátic
 * Los partidos se agrupan en base a la propiedad `group` (ej. `Grupo A` al `Grupo L`).
 
 ### Eliminatorias (Knockouts)
-* Las llaves de eliminatorias (16avos, octavos, cuartos, semifinales, tercer puesto y final) **se leen directamente** del array `matches` de Firestore, cargadas manualmente por el administrador, bypassando la autogeneración dinámica del cliente.
+* Las llaves de eliminatorias (16avos, octavos, cuartos, semifinales, tercer puesto y final) **se leen directamente** del array `matches` de Firestore.
+* **Generación automática de 16avos de Final:** El administrador dispone de un botón para generar la fase de 16avos de Final en Firestore basándose en los standings de los 12 grupos de la fase de grupos, siguiendo el formato de la Copa Mundial FIFA 2026:
+  * `getQualifiedTeams()`: Obtiene 1ros y 2dos de cada grupo (A al L), y ordena los 3ros por Puntos, Diferencia de Goles y Goles a Favor para obtener a los 8 mejores terceros clasificados.
+  * `matchThirdsAndLeftover(winners, thirdsList)`: Algoritmo de backtracking recursivo que empareja a los 8 mejores terceros contra 8 de los 9 líderes de grupo (`A, B, D, E, G, I, K, L` y `C`, priorizando dejar a `C` como sobrante), asegurando que ningún tercer puesto juegue contra el ganador de su grupo de origen. Identifica también al único ganador de grupo sobrante (normalmente `C`).
+  * `generateRoundOf32()`: Consolida los 7 cruces fijos, el cruce de ganador sobrante contra `2I` y los 8 cruces con mejores terceros. Asigna a cada ID (73 al 88) su fecha y hora oficial exacta desde un mapeo estático (`scheduleMap`), construyendo el campo `kickoff` unificado en formato `YYYY-MM-DDTHH:MM:00-03:00` para mantener consistencia. Los partidos se persisten en Firestore y actualizan reactivamente la vista de llaves y fixture al resolverse la promesa.
 * En `renderFixture()`, los partidos se agrupan e iteran dinámicamente por fase según su atributo `group` usando expresiones regulares.
 * El método `getPredictionStageName(match)` analiza los campos de partido para formatear el nombre de fases avanzadas (ej. `16avos`, `8vos`, `4tos`, `Semifinal`, `3° Puesto`, `Final`).
 

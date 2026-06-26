@@ -2060,7 +2060,7 @@
       <div class="card">
         <h2>&#127942; Fases Eliminatorias</h2>
         <div class="admin-only eliminatorias-admin-actions">
-          <button class="primary hidden" id="generateBracketBtn" onclick="renderEliminatorias()">Generar cruces automáticos</button>
+          <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" id="generateRoundOf32Btn" onclick="generateRoundOf32()">Generar 16avos de Final</button>
         </div>
       </div>
       <div class="card"><h3>16avos de Final</h3><div id="bracket16"></div></div>
@@ -4837,6 +4837,233 @@
       renderBracket('bracketFinal', 'Final', matchesFinal);
     }
 
+    function getQualifiedTeams() {
+      const tables = calculateGroupTables();
+      const firsts = {};
+      const seconds = {};
+      const thirds = [];
+
+      const groupLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+      groupLetters.forEach(letter => {
+        const groupKey = `Grupo ${letter}`;
+        const groupTable = tables[groupKey];
+        if (groupTable) {
+          firsts[letter] = groupTable[0]?.team || `1° Grupo ${letter}`;
+          seconds[letter] = groupTable[1]?.team || `2° Grupo ${letter}`;
+          if (groupTable[2]) {
+            thirds.push({
+              team: groupTable[2].team,
+              points: groupTable[2].points,
+              goalDifference: groupTable[2].goalDifference,
+              goalsFor: groupTable[2].goalsFor,
+              group: letter
+            });
+          } else {
+            thirds.push({
+              team: `3° Grupo ${letter}`,
+              points: 0,
+              goalDifference: 0,
+              goalsFor: 0,
+              group: letter
+            });
+          }
+        } else {
+          firsts[letter] = `1° Grupo ${letter}`;
+          seconds[letter] = `2° Grupo ${letter}`;
+          thirds.push({
+            team: `3° Grupo ${letter}`,
+            points: 0,
+            goalDifference: 0,
+            goalsFor: 0,
+            group: letter
+          });
+        }
+      });
+
+      thirds.sort((a, b) => 
+        b.points - a.points || 
+        b.goalDifference - a.goalDifference || 
+        b.goalsFor - a.goalsFor || 
+        a.team.localeCompare(b.team)
+      );
+
+      const bestThirds = thirds.slice(0, 8);
+
+      return {
+        firsts,
+        seconds,
+        bestThirds
+      };
+    }
+
+    function matchThirdsAndLeftover(winners, thirdsList) {
+      const assignment = {};
+      const usedThirds = new Set();
+      let leftoverWinner = null;
+      const orderedWinners = winners.filter(w => w !== 'C').concat('C');
+
+      function backtrack(winnerIndex) {
+        if (winnerIndex === orderedWinners.length) {
+          let unassignedCount = 0;
+          let unassignedWinner = null;
+          orderedWinners.forEach(w => {
+            if (!assignment[w]) {
+              unassignedCount++;
+              unassignedWinner = w;
+            }
+          });
+          if (unassignedCount === 1) {
+            leftoverWinner = unassignedWinner;
+            return true;
+          }
+          return false;
+        }
+
+        const winner = orderedWinners[winnerIndex];
+
+        for (let i = 0; i < thirdsList.length; i++) {
+          const third = thirdsList[i];
+          if (usedThirds.has(third.team)) continue;
+          if (third.group === winner) continue;
+
+          assignment[winner] = third.team;
+          usedThirds.add(third.team);
+
+          if (backtrack(winnerIndex + 1)) return true;
+
+          delete assignment[winner];
+          usedThirds.delete(third.team);
+        }
+
+        if (usedThirds.size + (orderedWinners.length - 1 - winnerIndex) >= 8) {
+          if (backtrack(winnerIndex + 1)) return true;
+        }
+
+        return false;
+      }
+
+      if (backtrack(0)) {
+        return { assignment, leftoverWinner };
+      } else {
+        const fallback = {};
+        const fallbackWinners = winners.filter(w => w !== 'C');
+        fallbackWinners.forEach((winner, idx) => {
+          fallback[winner] = thirdsList[idx]?.team || `3° Grupo fallback`;
+        });
+        return { assignment: fallback, leftoverWinner: 'C' };
+      }
+    }
+
+    async function generateRoundOf32() {
+      if (!requireAuth('generar 16avos')) return;
+      if (!isAdmin) return;
+
+      try {
+        const qualified = getQualifiedTeams();
+        const firsts = qualified.firsts;
+        const seconds = qualified.seconds;
+        const bestThirds = qualified.bestThirds;
+
+        const winnersToMatch = ['A', 'B', 'C', 'D', 'E', 'G', 'I', 'K', 'L'];
+        const matchResult = matchThirdsAndLeftover(winnersToMatch, bestThirds);
+        const thirdAssignments = matchResult.assignment;
+        const leftoverWinner = matchResult.leftoverWinner;
+
+        const fixedMatches = [
+          { home: seconds['A'], away: seconds['B'] },
+          { home: firsts['F'], away: seconds['C'] },
+          { home: firsts['H'], away: seconds['J'] },
+          { home: firsts['J'], away: seconds['H'] },
+          { home: seconds['D'], away: seconds['E'] },
+          { home: seconds['F'], away: seconds['G'] },
+          { home: seconds['K'], away: seconds['L'] }
+        ];
+
+        const leftoverMatch = {
+          home: firsts[leftoverWinner],
+          away: seconds['I']
+        };
+
+        const thirdsMatches = [];
+        Object.entries(thirdAssignments).forEach(([winnerLetter, thirdTeam]) => {
+          thirdsMatches.push({
+            home: firsts[winnerLetter],
+            away: thirdTeam
+          });
+        });
+
+        const roundOf32Matches = [
+          ...fixedMatches,
+          leftoverMatch,
+          ...thirdsMatches
+        ];
+
+        const scheduleMap = {
+          73: { date: '28/06/2026', time: '16:00' },
+          74: { date: '29/06/2026', time: '17:30' },
+          75: { date: '29/06/2026', time: '22:00' },
+          76: { date: '29/06/2026', time: '14:00' },
+          77: { date: '30/06/2026', time: '18:00' },
+          78: { date: '30/06/2026', time: '14:00' },
+          79: { date: '30/06/2026', time: '22:00' },
+          80: { date: '01/07/2026', time: '13:00' },
+          81: { date: '01/07/2026', time: '21:00' },
+          82: { date: '01/07/2026', time: '17:00' },
+          83: { date: '02/07/2026', time: '20:00' },
+          84: { date: '02/07/2026', time: '16:00' },
+          85: { date: '03/07/2026', time: '00:00' },
+          86: { date: '03/07/2026', time: '19:00' },
+          87: { date: '03/07/2026', time: '22:30' },
+          88: { date: '03/07/2026', time: '15:00' }
+        };
+
+        const baseMatches = matches.filter(m => m.id < 73 || !/(16|dieciseisavos|dieciseisavo)/i.test(m.group || ''));
+        
+        const generated = roundOf32Matches.map((m, index) => {
+          const id = 73 + index;
+          const schedule = scheduleMap[id];
+          const date = schedule.date;
+          const time = schedule.time;
+
+          const [day, month, year] = date.split('/').map(Number);
+          const formattedYear = String(year).padStart(4, '0');
+          const formattedMonth = String(month).padStart(2, '0');
+          const formattedDay = String(day).padStart(2, '0');
+          const kickoff = `${formattedYear}-${formattedMonth}-${formattedDay}T${time}:00-03:00`;
+
+          return {
+            id,
+            date,
+            time,
+            group: '16avos de Final',
+            home: m.home,
+            away: m.away,
+            homeGoals: '',
+            awayGoals: '',
+            kickoff
+          };
+        });
+
+        matches = [...baseMatches, ...generated];
+        localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+        
+        window.prodeFirebase.saveData({ matches })
+          .then(() => {
+            alert('¡Partidos de 16avos de Final generados y guardados exitosamente!');
+            renderAll();
+            renderEliminatorias();
+            renderFixture();
+          })
+          .catch((error) => {
+            console.error('Error al guardar datos:', error);
+            alert('Hubo un error al guardar los partidos.');
+          });
+      } catch (error) {
+        console.error('Error al generar los 16avos de Final:', error);
+        alert('Hubo un error al generar los 16avos. Revisa la consola.');
+      }
+    }
+
     function buildRankingExportText() {
       const totals = getRankingTotals();
       let text = '🏆 PRODE MUNDIAL 2026\n\n';
@@ -4947,17 +5174,17 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
-      assertTest('boton generar cruces existe', document.getElementById('generateBracketBtn') !== null);
-      assertTest('boton generar cruces llama renderEliminatorias', document.getElementById('generateBracketBtn').getAttribute('onclick') === 'renderEliminatorias()');
+      assertTest('boton generar 16avos existe', document.getElementById('generateRoundOf32Btn') !== null);
+      assertTest('boton generar 16avos llama generateRoundOf32', document.getElementById('generateRoundOf32Btn').getAttribute('onclick') === 'generateRoundOf32()');
       const previousIsAdminForMenu = isAdmin;
       isAdmin = false;
       updateAdminUI();
       assertTest('usuario comun no ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'none');
-      assertTest('usuario comun no ve boton generar cruces', document.getElementById('generateBracketBtn').parentNode.style.display === 'none');
+      assertTest('usuario comun no ve boton generar 16avos', document.getElementById('generateRoundOf32Btn').parentNode.style.display === 'none');
       isAdmin = true;
       updateAdminUI();
       assertTest('admin ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'block');
-      assertTest('admin ve boton generar cruces', document.getElementById('generateBracketBtn').parentNode.style.display !== 'none');
+      assertTest('admin ve boton generar 16avos', document.getElementById('generateRoundOf32Btn').parentNode.style.display !== 'none');
       isAdmin = previousIsAdminForMenu;
       updateAdminUI();
       assertTest('usuario admin configurado correctamente', ADMIN_EMAIL === 'dmcfarlane@prode.local');
