@@ -121,6 +121,12 @@ El proyecto está implementado como una **Single Page Application (SPA) estátic
   2. Fallback: Construye un objeto Date en zona horaria de Argentina (`-03:00`) concatenando `match.date` y `match.time` vía `buildArgentinaDateTime()`.
   3. Fallback final: Asume las `00:00` del día del partido (`match.date`).
 
+### Panel de Contingencia y Carga Retroactiva (Sobreescritura Remota)
+* **Acceso y Visibilidad:** Protegido bajo la condición estricta de `isAdmin === true` en la UI y reservado en base de datos para el correo `dmcfarlane@prode.local`. Las vistas y componentes tienen la clase `.admin-only` para control visual estricto.
+* **Bypass de Restricciones:** Permite omitir las restricciones de tiempo y estado (`hasMatchStarted`, `arePredictionsLocked`, etc.) para realizar la carga manual retroactiva de pronósticos de cualquier usuario registrado.
+* **Lógica de Guardado:** Al guardar, realiza la mezcla y persistencia de las predicciones modificadas con las ya existentes para el usuario seleccionado en `/prode/mundial2026/predictions/{uid}`, disparando un refresco visual inmediato de todo el ranking.
+* **Seguridad Firestore:** Las reglas en `firestore.rules` permiten la lectura si se está autenticado, y la escritura (`create`, `update`, `delete`) si el `request.auth.uid` coincide con el `{uid}` del documento o bien si el email del usuario autenticado es `dmcfarlane@prode.local`.
+
 ---
 
 ## 5. Motor de Puntuación (`pointsFor`)

@@ -72,8 +72,7 @@ service cloud.firestore {
 
       match /predictions/{uid} {
         allow read: if signedIn();
-        allow create, update: if validPredictionDoc(uid);
-        allow delete: if signedIn() && (request.auth.uid == uid || isAdminEmail());
+        allow create, update, delete: if signedIn() && (request.auth.uid == uid || request.auth.token.email == "dmcfarlane@prode.local");
       }
     }
 

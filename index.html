@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Prode Mundial 2026</title>
+  <!-- Tailwind CSS CDN sin preflight para no pisar los estilos CSS vanilla del sitio -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: ['class', '.dark-theme'],
+      corePlugins: {
+        preflight: false,
+      }
+    }
+  </script>
 
   <style>
     :root {
@@ -2157,6 +2167,35 @@
           </div>
         </div>
       </div>
+
+      <!-- Panel de Contingencia para Administradores -->
+      <div class="card admin-only" id="contingencyPanelCard" style="display: none;">
+        <h2 class="text-xl font-bold mb-2 flex items-center gap-2 text-slate-800 dark:text-slate-100">
+          🚨 Panel de Contingencia (Carga Manual Retroactiva)
+        </h2>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mb-4">
+          Carga o modifica los pronósticos de cualquier usuario sin restricciones de tiempo (saltándose el bloqueo de partidos iniciados).
+        </p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label for="contingencyUserSelect" class="block text-sm font-semibold mb-1 text-slate-700 dark:text-slate-300">Seleccionar Usuario</label>
+            <select id="contingencyUserSelect" class="w-full p-2 border rounded bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500" onchange="onContingencyUserChange()">
+              <!-- se autocompleta con JS -->
+            </select>
+          </div>
+          <div>
+            <label for="contingencyDateSelect" class="block text-sm font-semibold mb-1 text-slate-700 dark:text-slate-300">Seleccionar Fecha/Fase</label>
+            <select id="contingencyDateSelect" class="w-full p-2 border rounded bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-blue-500" onchange="onContingencyFilterChange()">
+              <!-- se autocompleta con JS -->
+            </select>
+          </div>
+        </div>
+
+        <div id="contingencyMatchesContainer" class="mt-4 p-4 border rounded border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 hidden">
+          <!-- se autocompleta cuando se selecciona usuario y fecha -->
+        </div>
+      </div>
       <div class="card table-wrap">
         <table>
           <thead>
@@ -3742,7 +3781,10 @@
       if (id === 'eliminatorias') renderEliminatorias();
       if (id === 'jugadores') {
         loadRegisteredUserProfiles()
-          .then(() => renderPlayers())
+          .then(() => {
+            renderPlayers();
+            initContingencyPanel();
+          })
           .catch(error => console.warn(getFirestoreErrorMessage(error, 'cargar usuarios registrados'), error));
       }
     }
@@ -4855,6 +4897,284 @@
       input.value = '';
       saveAll();
       renderAll();
+    }
+
+    // --- Panel de Contingencia ---
+    let contingencySelectedProfile = null;
+    let contingencyPredictions = [];
+
+    async function initContingencyPanel() {
+      if (!isAdmin) return;
+
+      const userSelect = document.getElementById('contingencyUserSelect');
+      const dateSelect = document.getElementById('contingencyDateSelect');
+      if (!userSelect || !dateSelect) return;
+
+      try {
+        const allProfiles = await window.prodeFirebase.loadUserProfiles();
+
+        allProfiles.sort((a, b) => {
+          const nameA = a.displayName || a.email || '';
+          const nameB = b.displayName || b.email || '';
+          return nameA.localeCompare(nameB, 'es', { sensitivity: 'base' });
+        });
+
+        userSelect.innerHTML = '<option value="">-- Seleccionar un Usuario --</option>' +
+          allProfiles.map(profile => {
+            const name = profile.displayName || profile.email || 'Sin nombre';
+            return `<option value="${escapeHtml(profile.uid)}">${escapeHtml(name)} (${escapeHtml(profile.uid)})</option>`;
+          }).join('');
+
+        const dates = getPredictionDateFilterOptions();
+        dateSelect.innerHTML = dates
+          .map(date => `<option value="${escapeHtml(date.value)}">${escapeHtml(date.label)}</option>`)
+          .join('');
+
+        const closestDateValue = getClosestContingencyDateValue(dates);
+        if (closestDateValue) {
+          dateSelect.value = closestDateValue;
+        }
+
+        document.getElementById('contingencyMatchesContainer').innerHTML = '';
+        document.getElementById('contingencyMatchesContainer').classList.add('hidden');
+      } catch (error) {
+        console.error('Error al inicializar el panel de contingencia:', error);
+      }
+    }
+
+    function getClosestContingencyDateValue(dates) {
+      if (!dates || dates.length === 0) return '';
+
+      const now = new Date();
+      let closestValue = dates[0].value;
+      let minDiff = Infinity;
+
+      for (const d of dates) {
+        const parts = d.value.split('|');
+        if (parts.length >= 3) {
+          const dateStr = parts[1];
+          const timeStr = parts[2];
+
+          const dateParts = dateStr.split('/');
+          if (dateParts.length === 3) {
+            const day = parseInt(dateParts[0], 10);
+            const month = parseInt(dateParts[1], 10) - 1;
+            const year = parseInt(dateParts[2], 10);
+
+            const timeParts = timeStr.split(':');
+            const hour = timeParts.length >= 2 ? parseInt(timeParts[0], 10) : 0;
+            const minute = timeParts.length >= 2 ? parseInt(timeParts[1], 10) : 0;
+
+            const matchDateTime = new Date(year, month, day, hour, minute);
+            const diff = Math.abs(now.getTime() - matchDateTime.getTime());
+            if (diff < minDiff) {
+              minDiff = diff;
+              closestValue = d.value;
+            }
+          }
+        }
+      }
+      return closestValue;
+    }
+
+    async function onContingencyUserChange() {
+      const userSelect = document.getElementById('contingencyUserSelect');
+      const container = document.getElementById('contingencyMatchesContainer');
+      const selectedUid = userSelect.value;
+
+      if (!selectedUid) {
+        contingencySelectedProfile = null;
+        contingencyPredictions = [];
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        return;
+      }
+
+      try {
+        const profile = await window.prodeFirebase.loadUserProfile(selectedUid);
+        contingencySelectedProfile = profile;
+
+        const userPredictionDoc = await window.prodeFirebase.loadUserPredictions(selectedUid);
+        contingencyPredictions = normalizePredictionList(userPredictionDoc?.predictions || [], profile?.displayName || profile?.email || '');
+
+        renderContingencyMatches();
+      } catch (error) {
+        console.error('Error al cargar predicciones para contingencia:', error);
+        alert('Error al cargar los datos del usuario seleccionado.');
+      }
+    }
+
+    function onContingencyFilterChange() {
+      if (contingencySelectedProfile) {
+        renderContingencyMatches();
+      }
+    }
+
+    function getFilteredContingencyMatches() {
+      const dateSelect = document.getElementById('contingencyDateSelect');
+      if (!dateSelect) return [];
+      const selectedValue = dateSelect.value;
+      if (!selectedValue) return matches;
+
+      return matches.filter(match => {
+        const matchValue = getPredictionDateFilterValue(match);
+        return matchValue === selectedValue;
+      });
+    }
+
+    function renderContingencyMatches() {
+      const container = document.getElementById('contingencyMatchesContainer');
+      const filtered = getFilteredContingencyMatches();
+
+      if (!filtered.length) {
+        container.innerHTML = '<p class="text-sm text-slate-500 italic">No hay partidos en esta fecha/fase.</p>';
+        container.classList.remove('hidden');
+        return;
+      }
+
+      let html = `
+        <h3 class="text-md font-bold mb-3 text-slate-700 dark:text-slate-300">
+          Partidos del ${escapeHtml(document.getElementById('contingencyDateSelect').options[document.getElementById('contingencyDateSelect').selectedIndex]?.text || '')}
+        </h3>
+        <div class="space-y-4">
+      `;
+
+      filtered.forEach(match => {
+        const pred = contingencyPredictions.find(p => p.matchId === match.id);
+        const homeVal = pred ? pred.home : '';
+        const awayVal = pred ? pred.away : '';
+
+        const isKnockout = /(16|dieciseisavos|dieciseisavo|8|octavos|octavo|4|cuartos|cuarto|semi|final|tercer)/i.test(match.group || '');
+        const disclaimer = isKnockout
+          ? '<span class="text-[10px] text-amber-500 italic block mt-0.5">Resultado reglamentario (120 min), sin penales.</span>'
+          : '';
+
+        html += `
+          <div class="flex flex-col sm:flex-row items-center justify-between gap-4 p-3 border rounded border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 shadow-sm">
+            <div class="flex flex-col items-center sm:items-start text-center sm:text-left min-w-[120px]">
+              <span class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">Partido #${match.id}</span>
+              <span class="text-[10px] text-slate-400 mt-1">${escapeHtml(match.group)}</span>
+            </div>
+            
+            <div class="flex items-center justify-center gap-3 w-full sm:w-auto">
+              <span class="font-medium text-sm text-right w-24 sm:w-32 truncate" title="${escapeHtml(match.home)}">${escapeHtml(match.home)}</span>
+              
+              <div class="flex items-center gap-1.5">
+                <input type="number" min="0" id="contingencyHome-${match.id}" value="${escapeHtml(homeVal)}" class="w-12 p-1.5 text-center border rounded bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="-">
+                <span class="text-slate-400 font-bold">:</span>
+                <input type="number" min="0" id="contingencyAway-${match.id}" value="${escapeHtml(awayVal)}" class="w-12 p-1.5 text-center border rounded bg-slate-50 dark:bg-slate-900 border-slate-300 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-sm font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="-">
+              </div>
+              
+              <span class="font-medium text-sm text-left w-24 sm:w-32 truncate" title="${escapeHtml(match.away)}">${escapeHtml(match.away)}</span>
+            </div>
+            
+            <div class="text-center sm:text-right min-w-[100px]">
+              ${disclaimer}
+            </div>
+          </div>
+        `;
+      });
+
+      html += `
+        </div>
+        <div class="mt-5 flex justify-end gap-3">
+          <button type="button" class="px-4 py-2 text-sm rounded bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition" onclick="cancelContingencyEdit()">
+            Cancelar
+          </button>
+          <button type="button" class="px-4 py-2 text-sm rounded bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-sm transition" onclick="saveContingencyPredictions()">
+            Guardar Pronósticos Forzados
+          </button>
+        </div>
+      `;
+
+      container.innerHTML = html;
+      container.classList.remove('hidden');
+    }
+
+    function cancelContingencyEdit() {
+      document.getElementById('contingencyUserSelect').value = '';
+      onContingencyUserChange();
+    }
+
+    async function saveContingencyPredictions() {
+      if (!isAdmin) {
+        alert('Acción no autorizada. Debes ser administrador.');
+        return;
+      }
+      if (!contingencySelectedProfile) {
+        alert('Por favor, selecciona un usuario.');
+        return;
+      }
+
+      const filtered = getFilteredContingencyMatches();
+      const updatedPredictionsMap = new Map();
+
+      contingencyPredictions.forEach(pred => {
+        updatedPredictionsMap.set(pred.matchId, pred);
+      });
+
+      for (const match of filtered) {
+        const homeInput = document.getElementById(`contingencyHome-${match.id}`);
+        const awayInput = document.getElementById(`contingencyAway-${match.id}`);
+
+        if (homeInput && awayInput) {
+          const homeVal = homeInput.value.trim();
+          const awayVal = awayInput.value.trim();
+
+          if (homeVal !== '' && awayVal !== '') {
+            const home = parseInt(homeVal, 10);
+            const away = parseInt(awayVal, 10);
+
+            if (!isNaN(home) && !isNaN(away) && home >= 0 && away >= 0) {
+              updatedPredictionsMap.set(match.id, {
+                player: contingencySelectedProfile.displayName || contingencySelectedProfile.email.split('@')[0],
+                matchId: match.id,
+                home,
+                away
+              });
+            }
+          } else if (homeVal === '' && awayVal === '') {
+            updatedPredictionsMap.delete(match.id);
+          } else {
+            alert(`Por favor, completa ambos campos de goles para el partido #${match.id} (${match.home} vs ${match.away}) o dejalos ambos vacíos.`);
+            return;
+          }
+        }
+      }
+
+      const userPredictionsList = [...updatedPredictionsMap.values()];
+
+      try {
+        console.log(`Guardando pronósticos forzados para ${contingencySelectedProfile.email} (${contingencySelectedProfile.uid})`);
+
+        await window.prodeFirebase.saveUserPredictions(
+          {
+            uid: contingencySelectedProfile.uid,
+            displayName: contingencySelectedProfile.displayName || contingencySelectedProfile.email.split('@')[0],
+            email: contingencySelectedProfile.email
+          },
+          userPredictionsList
+        );
+
+        alert(`Pronósticos guardados con éxito para ${contingencySelectedProfile.displayName || contingencySelectedProfile.email}`);
+
+        const predictionDocs = await window.prodeFirebase.loadAllPredictions();
+        predictionDocs.forEach(item => rememberUserProfile(item));
+        await loadRegisteredUserProfiles();
+
+        rankingPredictions = getRankingPredictionSource(predictionDocs, legacyRankingPredictions, predictions);
+
+        if (currentFirebaseUser && currentFirebaseUser.uid === contingencySelectedProfile.uid) {
+          predictions = userPredictionsList;
+          localStorage.setItem(STORAGE_KEYS.predictions, JSON.stringify(predictions));
+        }
+
+        renderAll();
+        cancelContingencyEdit();
+      } catch (error) {
+        console.error('Error al guardar pronósticos forzados:', error);
+        alert('Error al guardar los pronósticos en la base de datos: ' + error.message);
+      }
     }
 
     function toggleResultLock() {
