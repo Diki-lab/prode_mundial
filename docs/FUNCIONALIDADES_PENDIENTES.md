@@ -2,6 +2,7 @@
 
 ## Indice
 
+- [Bugs criticos](#bugs-criticos)
 - [Prioridad alta](#prioridad-alta)
 - [Prioridad media](#prioridad-media)
 - [Prioridad baja](#prioridad-baja)
@@ -11,6 +12,59 @@
 - [Mejoras para pronosticos](#mejoras-para-pronosticos)
 - [Mejoras para ranking](#mejoras-para-ranking)
 - [Ideas futuras](#ideas-futuras)
+
+## Bugs criticos
+
+Rama de trabajo: `fix/user-identity-by-uid`
+
+### Bug 1 — Las fotos de los usuarios no se muestran en ranking y podio
+
+**Causa raiz:** El sistema de avatares identifica a los jugadores por su `displayName` en lugar de su `uid`, y ademas descarta las URLs de Firebase Storage antes de usarlas.
+
+**Ubicaciones en `index.html`:**
+
+- Linea 2634: `normalizeAvatarSettings` siempre fuerza `photoURL: ''`, descartando cualquier URL real de Firebase Storage guardada en `users/{uid}.photoURL`. El campo llega de Firestore pero nunca se pasa al markup.
+- Linea 2625-2628: `getLocalAvatarPath(value)` genera una ruta estatica `img/avatars/[slug].jpg` derivada del nombre. Si el nombre cambia, el slug cambia y el archivo local deja de encontrarse.
+- Linea 2691-2706: `getAvatarForPlayer(player)` busca el perfil de avatar en `userProfilesByName` usando el `displayName` como clave. Si el nombre en el ranking no coincide exactamente con el nombre registrado, no encuentra ningun avatar.
+- Linea 2677-2688: `rememberUserProfile` solo indexa por `displayName` y `email`, nunca por `uid`. No hay forma de buscar el avatar por identidad estable.
+
+**Solucion propuesta:**
+
+1. En `normalizeAvatarSettings`: preservar `photoURL` tal como llega en lugar de limpiarlo a `''`.
+2. En `buildAvatarMarkup`: cuando `photoURL` no esta vacio, renderizar `<img src="{photoURL}">` con prioridad sobre `localAvatarPath`.
+3. En `rememberUserProfile`: ademas de indexar por `displayName` y `email`, indexar tambien por `uid` cuando el perfil lo incluya.
+4. En `getAvatarForPlayer`: aceptar opcionalmente un segundo parametro `uid` y buscar primero por `uid` en `userProfilesByName`, luego por nombre como fallback.
+5. En `getPredictionDocsList` y las llamadas a `rememberUserProfile` desde `loadAllPredictions`: pasar el `uid` del documento de prediccion al perfil de avatar para que quede indexado.
+
+---
+
+### Bug 2 — Los puntos se pierden al cambiar el nombre de usuario
+
+**Causa raiz:** Los pronósticos identifican al jugador solo por `player` (string con el `displayName`). Al cambiar el nombre, los pronosticos viejos quedan con el nombre anterior y el ranking los trata como un jugador distinto.
+
+**Ubicaciones en `index.html`:**
+
+- Linea 2801-2810: `normalizePrediction` solo guarda `{ player, matchId, home, away }`. No hay campo `uid`. El nombre es el unico identificador del jugador en cada pronostico.
+- Linea 4117-4143: `savePrediction()` crea la entrada con `player = currentProfileName`. Los pronosticos existentes ya tienen `player` seteado con el nombre viejo y `normalizePrediction` los respeta sin pisarlos.
+- Linea 3610: `saveCurrentUserPredictions` usa `normalizePredictionList(predictions, currentProfileName)` como fallback, pero las predicciones ya guardadas tienen su propio `player` que tiene precedencia.
+- Linea 4540-4554: `getRankingTotals()` agrupa por `prediction.player === player` (comparacion exacta de string). "Carlos" y "Carlos Nuevo" son dos jugadores distintos con puntos parciales cada uno.
+- Linea 2835: `getPredictionDocsList` usa `item.displayName || item.email` como fallback de nombre, pero si el array interno ya tiene `player` seteado con el nombre viejo, ese valor se usa directamente.
+
+**Flujo del problema:**
+
+1. Usuario guarda pronosticos con nombre "Carlos" → `prediction.player = "Carlos"` en Firestore.
+2. Usuario cambia su `displayName` a "Carlos Nuevo".
+3. Pronosticos viejos siguen teniendo `player: "Carlos"` (el campo ya tiene valor, no se pisa).
+4. Pronosticos nuevos tienen `player: "Carlos Nuevo"`.
+5. El ranking muestra "Carlos" (puntos viejos) y "Carlos Nuevo" (puntos nuevos) como jugadores distintos.
+
+**Solucion propuesta:**
+
+1. En `normalizePrediction`: propagar el campo `uid` si viene en el objeto fuente: `{ player, matchId, home, away, uid }`.
+2. En `getPredictionDocsList`: al aplanar las predicciones de cada documento, inyectar el `uid` del documento padre en cada prediccion individual.
+3. En `getRankingTotals`: agrupar por `uid` cuando este disponible; caer a agrupacion por `player` solo para datos legacy sin `uid`.
+4. En `saveCurrentUserPredictions`: antes de guardar, normalizar todos los `player` del array local al `currentProfileName` actual. Esto garantiza que al guardar despues de un cambio de nombre, todos los pronosticos del usuario queden con el nombre nuevo.
+5. Al actualizar `displayName` con `updateDisplayName`: tambien recargar y re-guardar los pronosticos del usuario para propagar el nombre nuevo a todas las entradas existentes en Firestore.
 
 ## Prioridad alta
 

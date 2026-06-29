@@ -662,6 +662,13 @@
       border-radius: 12px;
     }
 
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+
     .group-badge {
       display: inline-block;
       background: var(--success-soft);
@@ -1160,6 +1167,47 @@
 
     .eliminatorias-admin-actions {
       margin-top: 14px;
+    }
+
+    #manual16vosFormContainer {
+      margin-top: 16px;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+
+    .match16-row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .match16-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+
+    .match16-vs {
+      font-weight: 700;
+      color: var(--muted);
+      text-align: center;
+      padding: 0 4px;
+    }
+
+    .match16-header {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    @media (max-width: 500px) {
+      .match16-row {
+        grid-template-columns: 1fr auto 1fr;
+        gap: 4px;
+      }
     }
 
     .podium-avatar {
@@ -2060,7 +2108,20 @@
       <div class="card">
         <h2>&#127942; Fases Eliminatorias</h2>
         <div class="admin-only eliminatorias-admin-actions">
-          <button class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded" id="generateRoundOf32Btn" onclick="generateRoundOf32()">Generar 16avos de Final</button>
+          <button class="primary" id="showManual16vosFormBtn" onclick="showManual16vosForm()">Cargar cruces 16avos manualmente</button>
+          <div id="manual16vosFormContainer" style="display:none">
+            <p class="muted match16-header">Completá los 16 cruces. Podés sincronizar desde ESPN para pre-cargar los datos y luego corregir lo que sea necesario.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+              <button class="secondary" id="syncEspnBtn" onclick="sync16avosFromESPN()">&#8635; Sincronizar desde ESPN</button>
+              <a class="secondary" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px" href="https://www.fifa.com/fifaplus/es/tournaments/mens/worldcup/canadamexicousa2026/matches" target="_blank" rel="noopener">&#127758; Ver en FIFA.com</a>
+            </div>
+            <p id="sync16vosStatus" class="muted" style="min-height:1.2em;font-size:0.85rem"></p>
+            <div id="manual16vosRows"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+              <button class="primary" onclick="saveManual16avos()">Guardar cruces</button>
+              <button class="secondary" onclick="closeManual16vosForm()">Cancelar</button>
+            </div>
+          </div>
         </div>
       </div>
       <div class="card"><h3>16avos de Final</h3><div id="bracket16"></div></div>
@@ -4017,7 +4078,7 @@
 
         rows += `
           <tr class="fixture-phase-header-row bg-slate-100 dark:bg-slate-800">
-            <td colspan="7" class="py-3 px-4 text-left border-b border-slate-200 dark:border-slate-700">
+            <td colspan="8" class="py-3 px-4 text-left border-b border-slate-200 dark:border-slate-700">
               <h3 class="text-lg font-bold text-slate-800 dark:text-slate-100">${escapeHtml(phase.name)}</h3>
             </td>
           </tr>
@@ -4027,13 +4088,14 @@
         phaseMatches.forEach(match => {
           const headerTitle = getFixtureHeaderTitle(match);
           const headerRow = headerTitle !== previousHeader
-            ? `<tr class="fixture-date-row"><td colspan="7"><span class="fixture-date-title">${escapeHtml(headerTitle)}</span></td></tr>`
+            ? `<tr class="fixture-date-row"><td colspan="8"><span class="fixture-date-title">${escapeHtml(headerTitle)}</span></td></tr>`
             : '';
           previousHeader = headerTitle;
 
+          const canEdit = isAdmin && !isResultLocked;
           const isKnockout = /(16|dieciseisavos|dieciseisavo|8|octavos|octavo|4|cuartos|cuarto|semi|final|tercer)/i.test(match.group || '');
-          const disclaimer = isKnockout 
-            ? '<div class="text-xs text-gray-500 italic mt-1 block">Resultado válido a los 120\'. No incluye penales.</div>' 
+          const disclaimer = isKnockout
+            ? '<div class="text-xs text-gray-500 italic mt-1 block">Resultado válido a los 120\'. No incluye penales.</div>'
             : '';
 
           rows += `
@@ -4044,20 +4106,21 @@
               <td><span class="group-badge">${escapeHtml(match.group)}</span></td>
               <td>${renderTeam(match.home)}</td>
               <td>
-                <input class="score-input" type="number" min="0" value="${escapeHtml(match.homeGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'homeGoals', this.value)">
+                <input class="score-input" type="number" min="0" id="homeGoals-${match.id}" value="${escapeHtml(String(match.homeGoals ?? ''))}" ${canEdit ? '' : 'disabled'}>
                 ${disclaimer}
               </td>
               <td>
-                <input class="score-input" type="number" min="0" value="${escapeHtml(match.awayGoals)}" ${(!isAdmin || isResultLocked) ? 'disabled' : ''} onchange="updateResult(${match.id}, 'awayGoals', this.value)">
+                <input class="score-input" type="number" min="0" id="awayGoals-${match.id}" value="${escapeHtml(String(match.awayGoals ?? ''))}" ${canEdit ? '' : 'disabled'}>
                 ${disclaimer}
               </td>
               <td>${renderTeam(match.away)}</td>
+              <td>${canEdit ? `<button class="primary btn-sm" onclick="saveMatchResult(${match.id})">Guardar</button>` : ''}</td>
             </tr>
           `;
         });
       });
 
-      document.getElementById('fixtureBody').innerHTML = rows || '<tr><td colspan="7" class="text-center py-4 muted">No se encontraron partidos.</td></tr>';
+      document.getElementById('fixtureBody').innerHTML = rows || '<tr><td colspan="8" class="text-center py-4 muted">No se encontraron partidos.</td></tr>';
     }
 
     function updateResult(id, field, value) {
@@ -4073,6 +4136,27 @@
       if (!match || !['homeGoals', 'awayGoals'].includes(field)) return;
 
       match[field] = value === '' ? '' : Number(value);
+      saveSharedData();
+      renderAll();
+    }
+
+    function saveMatchResult(id) {
+      if (!requireAuth('guardar resultado')) return;
+      if (!isAdmin) return;
+      if (isResultEditingBlocked()) {
+        alert('Resultados bloqueados. Desbloquealos desde Admin para editar marcadores.');
+        return;
+      }
+
+      const match = matches.find(item => item.id === id);
+      if (!match) return;
+
+      const homeRaw = document.getElementById(`homeGoals-${id}`)?.value ?? '';
+      const awayRaw = document.getElementById(`awayGoals-${id}`)?.value ?? '';
+
+      match.homeGoals = homeRaw === '' ? '' : Number(homeRaw);
+      match.awayGoals = awayRaw === '' ? '' : Number(awayRaw);
+
       saveSharedData();
       renderAll();
     }
@@ -4954,6 +5038,316 @@
       }
     }
 
+    const SCHEDULE_16AVOS = [
+      { id: 73,  date: '28/06/2026', time: '16:00' },
+      { id: 74,  date: '29/06/2026', time: '17:30' },
+      { id: 75,  date: '29/06/2026', time: '22:00' },
+      { id: 76,  date: '29/06/2026', time: '14:00' },
+      { id: 77,  date: '30/06/2026', time: '18:00' },
+      { id: 78,  date: '30/06/2026', time: '14:00' },
+      { id: 79,  date: '30/06/2026', time: '22:00' },
+      { id: 80,  date: '01/07/2026', time: '13:00' },
+      { id: 81,  date: '01/07/2026', time: '21:00' },
+      { id: 82,  date: '01/07/2026', time: '17:00' },
+      { id: 83,  date: '02/07/2026', time: '20:00' },
+      { id: 84,  date: '02/07/2026', time: '16:00' },
+      { id: 85,  date: '03/07/2026', time: '00:00' },
+      { id: 86,  date: '03/07/2026', time: '19:00' },
+      { id: 87,  date: '03/07/2026', time: '22:30' },
+      { id: 88,  date: '03/07/2026', time: '15:00' }
+    ];
+
+    function showManual16vosForm() {
+      if (!isAdmin) return;
+      const container = document.getElementById('manual16vosFormContainer');
+      const rowsContainer = document.getElementById('manual16vosRows');
+      if (!container || !rowsContainer) return;
+
+      const existing16 = matches.filter(m =>
+        /(16|dieciseisavos|dieciseisavo)/i.test(m.group || '')
+      );
+      const existingById = {};
+      existing16.forEach(m => { existingById[m.id] = m; });
+
+      rowsContainer.innerHTML = SCHEDULE_16AVOS.map(({ id, date, time }) => {
+        const pre = existingById[id];
+        const homeVal = escapeHtml(pre?.home || '');
+        const awayVal = escapeHtml(pre?.away || '');
+        const num = id - 72;
+        return `
+          <div>
+            <div class="match16-header">Partido ${num} &mdash; ${date} ${time}</div>
+            <div class="match16-row">
+              <div>
+                <div class="match16-label">Local</div>
+                <input id="match16home-${id}" value="${homeVal}" placeholder="Ej: Argentina" style="width:100%">
+              </div>
+              <div class="match16-vs">vs</div>
+              <div>
+                <div class="match16-label">Visitante</div>
+                <input id="match16away-${id}" value="${awayVal}" placeholder="Ej: Brasil" style="width:100%">
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      container.style.display = 'block';
+      container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function closeManual16vosForm() {
+      const container = document.getElementById('manual16vosFormContainer');
+      if (container) container.style.display = 'none';
+    }
+
+    async function saveManual16avos() {
+      if (!requireAuth('guardar 16avos')) return;
+      if (!isAdmin) return;
+
+      const generated = SCHEDULE_16AVOS.map(({ id, date, time }) => {
+        const home = (document.getElementById(`match16home-${id}`)?.value || '').trim();
+        const away = (document.getElementById(`match16away-${id}`)?.value || '').trim();
+        const [day, month, year] = date.split('/').map(Number);
+        const kickoff = `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${time}:00-03:00`;
+        return { id, date, time, group: '16avos de Final', home, away, homeGoals: '', awayGoals: '', kickoff };
+      });
+
+      const missing = generated.filter(m => !m.home || !m.away);
+      if (missing.length) {
+        alert(`Faltan completar ${missing.length} cruce(s) antes de guardar.`);
+        return;
+      }
+
+      const baseMatches = matches.filter(m =>
+        m.id < 73 || !/(16|dieciseisavos|dieciseisavo)/i.test(m.group || '')
+      );
+      matches = [...baseMatches, ...generated];
+      localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+
+      try {
+        await window.prodeFirebase.saveData({ matches });
+        closeManual16vosForm();
+        alert('¡16avos de Final guardados correctamente!');
+        renderAll();
+        renderEliminatorias();
+        renderFixture();
+      } catch (error) {
+        console.error('Error al guardar 16avos manuales:', error);
+        alert('Error al guardar. Revisá la consola.');
+      }
+    }
+
+    const TEAM_NAMES_ES = {
+      // CONMEBOL
+      'Argentina': 'Argentina', 'Brazil': 'Brasil', 'Colombia': 'Colombia',
+      'Uruguay': 'Uruguay', 'Ecuador': 'Ecuador', 'Venezuela': 'Venezuela',
+      'Paraguay': 'Paraguay', 'Chile': 'Chile', 'Peru': 'Perú', 'Bolivia': 'Bolivia',
+      // CONCACAF
+      'United States': 'Estados Unidos', 'USA': 'Estados Unidos', 'Mexico': 'México',
+      'Canada': 'Canadá', 'Panama': 'Panamá', 'Honduras': 'Honduras',
+      'Costa Rica': 'Costa Rica', 'Jamaica': 'Jamaica', 'El Salvador': 'El Salvador',
+      'Cuba': 'Cuba', 'Trinidad and Tobago': 'Trinidad y Tobago', 'Guatemala': 'Guatemala',
+      'Haiti': 'Haití', 'Curaçao': 'Curazao',
+      // UEFA
+      'England': 'Inglaterra', 'France': 'Francia', 'Germany': 'Alemania',
+      'Spain': 'España', 'Portugal': 'Portugal', 'Netherlands': 'Países Bajos',
+      'Belgium': 'Bélgica', 'Italy': 'Italia', 'Croatia': 'Croacia',
+      'Switzerland': 'Suiza', 'Austria': 'Austria', 'Denmark': 'Dinamarca',
+      'Poland': 'Polonia', 'Sweden': 'Suecia', 'Norway': 'Noruega',
+      'Serbia': 'Serbia', 'Hungary': 'Hungría', 'Slovakia': 'Eslovaquia',
+      'Slovenia': 'Eslovenia', 'Romania': 'Rumanía', 'Ukraine': 'Ucrania',
+      'Czech Republic': 'República Checa', 'Czechia': 'República Checa',
+      'Scotland': 'Escocia', 'Greece': 'Grecia', 'Turkey': 'Turquía',
+      'Wales': 'Gales', 'Iceland': 'Islandia', 'Albania': 'Albania',
+      'Kosovo': 'Kosovo', 'Ireland': 'Irlanda', 'Finland': 'Finlandia',
+      'Georgia': 'Georgia', 'North Macedonia': 'Macedonia del Norte',
+      'Bosnia and Herzegovina': 'Bosnia y Herzegovina', 'Montenegro': 'Montenegro',
+      'Bulgaria': 'Bulgaria', 'Latvia': 'Letonia', 'Lithuania': 'Lituania',
+      'Estonia': 'Estonia', 'Luxembourg': 'Luxemburgo', 'Azerbaijan': 'Azerbaiyán',
+      // AFC
+      'Japan': 'Japón', 'South Korea': 'Corea del Sur', 'Korea Republic': 'Corea del Sur',
+      'Australia': 'Australia', 'Iran': 'Irán', 'Saudi Arabia': 'Arabia Saudita',
+      'Qatar': 'Catar', 'China': 'China', 'Indonesia': 'Indonesia',
+      'Uzbekistan': 'Uzbekistán', 'Jordan': 'Jordania', 'Iraq': 'Irak',
+      'United Arab Emirates': 'Emiratos Árabes Unidos', 'UAE': 'Emiratos Árabes Unidos',
+      'Bahrain': 'Baréin', 'Oman': 'Omán', 'Kuwait': 'Kuwait', 'India': 'India',
+      'Thailand': 'Tailandia', 'Vietnam': 'Vietnam', 'Malaysia': 'Malasia',
+      'Philippines': 'Filipinas', 'North Korea': 'Corea del Norte',
+      'Tajikistan': 'Tayikistán', 'Kyrgyzstan': 'Kirguistán',
+      // CAF
+      'Morocco': 'Marruecos', 'Senegal': 'Senegal', 'Nigeria': 'Nigeria',
+      'Egypt': 'Egipto', 'Algeria': 'Argelia', 'Tunisia': 'Túnez',
+      "Ivory Coast": 'Costa de Marfil', "Côte d'Ivoire": 'Costa de Marfil',
+      'Cameroon': 'Camerún', 'Ghana': 'Ghana', 'South Africa': 'Sudáfrica',
+      'Mali': 'Malí', 'Burkina Faso': 'Burkina Faso', 'Mozambique': 'Mozambique',
+      'Angola': 'Angola', 'Tanzania': 'Tanzania', 'Zambia': 'Zambia',
+      'Uganda': 'Uganda', 'Kenya': 'Kenia', 'Ethiopia': 'Etiopía',
+      'Guinea': 'Guinea', 'Benin': 'Benín', 'Gabon': 'Gabón',
+      'Namibia': 'Namibia', 'Libya': 'Libia', 'Zimbabwe': 'Zimbabue',
+      'Rwanda': 'Ruanda', 'DR Congo': 'R.D. del Congo',
+      'Democratic Republic of Congo': 'R.D. del Congo', 'Congo': 'Congo',
+      'Cape Verde': 'Cabo Verde', 'Mauritania': 'Mauritania', 'Comoros': 'Comoras',
+      'Sierra Leone': 'Sierra Leona', 'Guinea-Bissau': 'Guinea-Bisáu',
+      'Equatorial Guinea': 'Guinea Ecuatorial', 'Sudan': 'Sudán', 'Niger': 'Níger',
+      // OFC
+      'New Zealand': 'Nueva Zelanda', 'Fiji': 'Fiyi',
+      'Papua New Guinea': 'Papúa Nueva Guinea', 'Solomon Islands': 'Islas Salomón',
+      'Tahiti': 'Tahití',
+    };
+
+    function translateTeamName(name) {
+      if (!name) return '';
+      const trimmed = name.trim();
+      return TEAM_NAMES_ES[trimmed] || trimmed;
+    }
+
+    // Normaliza tokens de un nombre de equipo ignorando acentos, puntuación,
+    // artículos y el orden de palabras.
+    // "RD Congo", "Congo RD", "R.D. del Congo" → todos dan "congo rd"
+    function normalizeTeamTokens(name) {
+      const IGNORED = new Set(['de', 'del', 'the', 'of', 'y', 'and', 'la', 'el', 'los', 'las']);
+      return String(name || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .filter(t => t.length > 1 && !IGNORED.has(t))
+        .sort()
+        .join(' ');
+    }
+
+    // Resuelve el nombre traducido contra los equipos ya cargados en matches,
+    // para usar exactamente el mismo string que ya tiene el fixture.
+    function resolveTeamName(translatedName) {
+      if (!translatedName) return '';
+
+      const knownTeams = [...new Set(
+        matches.flatMap(m => [m.home, m.away]).filter(Boolean)
+      )];
+
+      const inputNormalized = normalizeTeamTokens(translatedName);
+      if (!inputNormalized) return translatedName;
+
+      // 1. Coincidencia exacta de tokens (ignora orden, acentos, puntuación)
+      const exact = knownTeams.find(t => normalizeTeamTokens(t) === inputNormalized);
+      if (exact) return exact;
+
+      // 2. Coincidencia parcial: todos los tokens del conjunto más pequeño
+      //    están contenidos en el más grande (maneja "R.D. del Congo" → "RD Congo")
+      const inputSet = new Set(inputNormalized.split(' '));
+      const partial = knownTeams.find(t => {
+        const knownSet = new Set(normalizeTeamTokens(t).split(' '));
+        const smaller = inputSet.size <= knownSet.size ? inputSet : knownSet;
+        const larger  = inputSet.size <= knownSet.size ? knownSet : inputSet;
+        return smaller.size >= 1 && [...smaller].every(tok => larger.has(tok));
+      });
+      if (partial) return partial;
+
+      return translatedName;
+    }
+
+    // Convierte fecha/hora del schedule (Argentina UTC-3) a objeto Date UTC
+    function scheduleSlotToUTC({ date, time }) {
+      const [day, month, year] = date.split('/').map(Number);
+      const [h, m] = time.split(':').map(Number);
+      return new Date(Date.UTC(year, month - 1, day, h + 3, m));
+    }
+
+    async function sync16avosFromESPN() {
+      if (!isAdmin) return;
+
+      const btn = document.getElementById('syncEspnBtn');
+      const statusEl = document.getElementById('sync16vosStatus');
+      const setStatus = (msg) => { if (statusEl) statusEl.textContent = msg; };
+
+      if (btn) btn.disabled = true;
+      setStatus('Consultando ESPN…');
+
+      // Buscar un día extra a cada lado para no perder partidos cerca de medianoche UTC
+      const fetchDates = ['20260628','20260629','20260630','20260701','20260702','20260703','20260704'];
+
+      async function fetchESPNDate(d) {
+        const url = `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?dates=${d}`;
+        try {
+          const res = await fetch(url, { signal: AbortSignal.timeout(6000) });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          return data.events || [];
+        } catch (_) {
+          const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+          const pr = await fetch(proxy, { signal: AbortSignal.timeout(10000) });
+          if (!pr.ok) throw new Error(`Proxy HTTP ${pr.status}`);
+          const wrapper = await pr.json();
+          return JSON.parse(wrapper.contents).events || [];
+        }
+      }
+
+      function extractTeams(event) {
+        const competitors = event?.competitions?.[0]?.competitors || [];
+        const home = competitors.find(c => c.homeAway === 'home') || competitors[0];
+        const away = competitors.find(c => c.homeAway === 'away') || competitors[1];
+        const resolve = raw => resolveTeamName(translateTeamName(raw?.team?.displayName || raw?.team?.name || ''));
+        return { home: resolve(home), away: resolve(away) };
+      }
+
+      try {
+        // 1. Recolectar todos los eventos ESPN del período de 16avos
+        const allEvents = [];
+        for (const d of fetchDates) {
+          try {
+            const events = await fetchESPNDate(d);
+            allEvents.push(...events);
+          } catch (err) {
+            console.warn(`ESPN: sin datos para ${d}`, err);
+          }
+        }
+
+        // 2. Para cada slot, encontrar el evento ESPN más cercano en hora
+        const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+        const usedEventIds = new Set();
+        let filled = 0;
+
+        for (const slot of SCHEDULE_16AVOS) {
+          const slotUTC = scheduleSlotToUTC(slot);
+
+          let bestEvent = null;
+          let bestDiff = Infinity;
+
+          for (const event of allEvents) {
+            if (usedEventIds.has(event.id)) continue;
+            const diff = Math.abs(new Date(event.date) - slotUTC);
+            if (diff < bestDiff && diff <= TWO_HOURS_MS) {
+              bestDiff = diff;
+              bestEvent = event;
+            }
+          }
+
+          if (bestEvent) {
+            usedEventIds.add(bestEvent.id);
+            const { home, away } = extractTeams(bestEvent);
+            const homeInput = document.getElementById(`match16home-${slot.id}`);
+            const awayInput = document.getElementById(`match16away-${slot.id}`);
+            if (homeInput && home) { homeInput.value = home; filled++; }
+            if (awayInput && away) { awayInput.value = away; }
+          }
+        }
+
+        setStatus(
+          filled > 0
+            ? `✓ ${filled} equipos cargados desde ESPN en español. Verificá los cruces y guardá.`
+            : '⚠ ESPN no devolvió partidos todavía. Completá los cruces manualmente.'
+        );
+      } catch (err) {
+        console.error('sync16avosFromESPN error:', err);
+        setStatus('⚠ No se pudo conectar. Completá manualmente o usá el link de FIFA.com.');
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
     async function generateRoundOf32() {
       if (!requireAuth('generar 16avos')) return;
       if (!isAdmin) return;
@@ -5174,17 +5568,17 @@
       assertTest('saveProfilePhoto existe', typeof saveProfilePhoto === 'function');
       assertTest('deleteProfilePhoto existe', typeof deleteProfilePhoto === 'function');
       assertTest('themeHeaderBtn existe', document.getElementById('themeHeaderBtn') !== null);
-      assertTest('boton generar 16avos existe', document.getElementById('generateRoundOf32Btn') !== null);
-      assertTest('boton generar 16avos llama generateRoundOf32', document.getElementById('generateRoundOf32Btn').getAttribute('onclick') === 'generateRoundOf32()');
+      assertTest('boton cargar 16avos manual existe', document.getElementById('showManual16vosFormBtn') !== null);
+      assertTest('boton cargar 16avos manual llama showManual16vosForm', document.getElementById('showManual16vosFormBtn').getAttribute('onclick') === 'showManual16vosForm()');
       const previousIsAdminForMenu = isAdmin;
       isAdmin = false;
       updateAdminUI();
       assertTest('usuario comun no ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'none');
-      assertTest('usuario comun no ve boton generar 16avos', document.getElementById('generateRoundOf32Btn').parentNode.style.display === 'none');
+      assertTest('usuario comun no ve boton cargar 16avos', document.getElementById('showManual16vosFormBtn').parentNode.parentNode.style.display === 'none');
       isAdmin = true;
       updateAdminUI();
       assertTest('admin ve admin en menu', document.getElementById('userMenuAdminItem').style.display === 'block');
-      assertTest('admin ve boton generar 16avos', document.getElementById('generateRoundOf32Btn').parentNode.style.display !== 'none');
+      assertTest('admin ve boton cargar 16avos', document.getElementById('showManual16vosFormBtn').parentNode.parentNode.style.display !== 'none');
       isAdmin = previousIsAdminForMenu;
       updateAdminUI();
       assertTest('usuario admin configurado correctamente', ADMIN_EMAIL === 'dmcfarlane@prode.local');
