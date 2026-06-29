@@ -4925,56 +4925,26 @@
             return `<option value="${escapeHtml(profile.uid)}">${escapeHtml(name)} (${escapeHtml(profile.uid)})</option>`;
           }).join('');
 
-        const dates = getPredictionDateFilterOptions();
-        dateSelect.innerHTML = dates
-          .map(date => `<option value="${escapeHtml(date.value)}">${escapeHtml(date.label)}</option>`)
+        const phases = [
+          'Fase de Grupos',
+          '16avos de Final',
+          'Octavos de Final',
+          'Cuartos de Final',
+          'Semifinales',
+          'Tercer Puesto',
+          'Final'
+        ];
+        dateSelect.innerHTML = phases
+          .map(phase => `<option value="${escapeHtml(phase)}">${escapeHtml(phase)}</option>`)
           .join('');
 
-        const closestDateValue = getClosestContingencyDateValue(dates);
-        if (closestDateValue) {
-          dateSelect.value = closestDateValue;
-        }
+        dateSelect.value = 'Fase de Grupos';
 
         document.getElementById('contingencyMatchesContainer').innerHTML = '';
         document.getElementById('contingencyMatchesContainer').classList.add('hidden');
       } catch (error) {
         console.error('Error al inicializar el panel de contingencia:', error);
       }
-    }
-
-    function getClosestContingencyDateValue(dates) {
-      if (!dates || dates.length === 0) return '';
-
-      const now = new Date();
-      let closestValue = dates[0].value;
-      let minDiff = Infinity;
-
-      for (const d of dates) {
-        const parts = d.value.split('|');
-        if (parts.length >= 3) {
-          const dateStr = parts[1];
-          const timeStr = parts[2];
-
-          const dateParts = dateStr.split('/');
-          if (dateParts.length === 3) {
-            const day = parseInt(dateParts[0], 10);
-            const month = parseInt(dateParts[1], 10) - 1;
-            const year = parseInt(dateParts[2], 10);
-
-            const timeParts = timeStr.split(':');
-            const hour = timeParts.length >= 2 ? parseInt(timeParts[0], 10) : 0;
-            const minute = timeParts.length >= 2 ? parseInt(timeParts[1], 10) : 0;
-
-            const matchDateTime = new Date(year, month, day, hour, minute);
-            const diff = Math.abs(now.getTime() - matchDateTime.getTime());
-            if (diff < minDiff) {
-              minDiff = diff;
-              closestValue = d.value;
-            }
-          }
-        }
-      }
-      return closestValue;
     }
 
     async function onContingencyUserChange() {
@@ -5010,6 +4980,16 @@
       }
     }
 
+    function getMatchPhase(match) {
+      if (/(16|dieciseisavos|dieciseisavo)/i.test(match?.group || '')) return '16avos de Final';
+      if (/(8|octavos|octavo)/i.test(match?.group || '')) return 'Octavos de Final';
+      if (/(4|cuartos|cuarto)/i.test(match?.group || '')) return 'Cuartos de Final';
+      if (/semi/i.test(match?.group || '')) return 'Semifinales';
+      if (/(3|tercer|tercero).*(puesto|cuarto)|puesto.*(3|tercer|tercero)/i.test(match?.group || '')) return 'Tercer Puesto';
+      if (/final/i.test(match?.group || '') && !/(3|tercer|tercero).*(puesto|cuarto)|puesto.*(3|tercer|tercero)/i.test(match?.group || '')) return 'Final';
+      return 'Fase de Grupos';
+    }
+
     function getFilteredContingencyMatches() {
       const dateSelect = document.getElementById('contingencyDateSelect');
       if (!dateSelect) return [];
@@ -5017,8 +4997,7 @@
       if (!selectedValue) return matches;
 
       return matches.filter(match => {
-        const matchValue = getPredictionDateFilterValue(match);
-        return matchValue === selectedValue;
+        return getMatchPhase(match) === selectedValue;
       });
     }
 
