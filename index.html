@@ -2102,7 +2102,27 @@
     <section id="eliminatorias" class="tab hidden">
       <div class="card">
         <h2>&#127942; Fases Eliminatorias</h2>
-        <div class="admin-only eliminatorias-admin-actions">
+        <p class="muted">Cuadro de solo lectura. Los cruces se definen y los resultados/penales se cargan desde el panel Admin.</p>
+      </div>
+      <!-- Contenedor del Bracket Horizontal dinámico -->
+      <div id="bracketScrollContainer" class="card overflow-x-auto p-4 mb-8 bracket-scroll-container"></div>
+    </section>
+
+    <section id="jugadores" class="tab hidden">
+      <div class="card">
+        <h2>⚙️ Administración</h2>
+        <p id="adminIdentityStatus" class="muted"></p>
+        <p id="adminLockStatus" class="muted"></p>
+        <div class="admin-lock-controls">
+          <button class="warning" id="togglePredictionLockBtn" data-lock-action="predictions" onclick="togglePredictionLock()">Cerrar pronósticos</button>
+          <button class="warning" id="toggleResultLockBtn" data-lock-action="results" onclick="toggleResultLock()">Cerrar resultados</button>
+          <button class="primary" onclick="showTab('fixture')">Cargar resultados</button>
+        </div>
+      </div>
+
+      <div class="card admin-only">
+        <h2>&#127942; Cruces de Eliminatorias</h2>
+        <div class="eliminatorias-admin-actions">
           <button class="primary" id="showManual16vosFormBtn" onclick="showManual16vosForm()">Cargar cruces 16avos manualmente</button>
           <div id="manual16vosFormContainer" style="display:none">
             <p class="muted match16-header">Completá los 16 cruces. Podés sincronizar desde ESPN para pre-cargar los datos y luego corregir lo que sea necesario.</p>
@@ -2129,20 +2149,11 @@
           </div>
         </div>
       </div>
-      <!-- Contenedor del Bracket Horizontal dinámico -->
-      <div id="bracketScrollContainer" class="card overflow-x-auto p-4 mb-8 bracket-scroll-container"></div>
-    </section>
 
-    <section id="jugadores" class="tab hidden">
-      <div class="card">
-        <h2>⚙️ Administración</h2>
-        <p id="adminIdentityStatus" class="muted"></p>
-        <p id="adminLockStatus" class="muted"></p>
-        <div class="admin-lock-controls">
-          <button class="warning" id="togglePredictionLockBtn" data-lock-action="predictions" onclick="togglePredictionLock()">Cerrar pronósticos</button>
-          <button class="warning" id="toggleResultLockBtn" data-lock-action="results" onclick="toggleResultLock()">Cerrar resultados</button>
-          <button class="primary" onclick="showTab('fixture')">Cargar resultados</button>
-        </div>
+      <div class="card admin-only" id="penaltiesPanelCard" style="display:none">
+        <h2>&#9917; Definición por penales</h2>
+        <p class="muted">Cruces de eliminatorias empatados a los 120'. El ganador de los 120' sin empate se resuelve automáticamente con el resultado cargado en Fixture; acá solo se cargan los penales cuando hay empate.</p>
+        <div id="penaltiesPanelBody"></div>
       </div>
 
       <div class="card">
@@ -4173,7 +4184,7 @@
       renderAll();
     }
 
-    function saveMatchResult(id, fromBracket = false) {
+    function saveMatchResult(id) {
       if (!requireAuth('guardar resultado')) return;
       if (!isAdmin) return;
       if (isResultEditingBlocked()) {
@@ -4184,23 +4195,16 @@
       const match = matches.find(item => item.id === id);
       if (!match) return;
 
-      // El mismo partido puede tener una fila en Fixture y una tarjeta en el bracket
-      // de Eliminatorias renderizadas en simultáneo (ambas usan el mismo match.id).
-      // El prefijo evita que document.getElementById tome el input equivocado.
-      const homeGoalsId = fromBracket ? `bracketHomeGoals-${id}` : `homeGoals-${id}`;
-      const awayGoalsId = fromBracket ? `bracketAwayGoals-${id}` : `awayGoals-${id}`;
-      const homePenaltiesId = fromBracket ? `bracketHomePenalties-${id}` : `homePenalties-${id}`;
-      const awayPenaltiesId = fromBracket ? `bracketAwayPenalties-${id}` : `awayPenalties-${id}`;
-
-      const homeRaw = document.getElementById(homeGoalsId)?.value ?? '';
-      const awayRaw = document.getElementById(awayGoalsId)?.value ?? '';
+      const homeRaw = document.getElementById(`homeGoals-${id}`)?.value ?? '';
+      const awayRaw = document.getElementById(`awayGoals-${id}`)?.value ?? '';
 
       match.homeGoals = homeRaw === '' ? '' : Number(homeRaw);
       match.awayGoals = awayRaw === '' ? '' : Number(awayRaw);
 
-      // Penales: solo presentes en el formulario de eliminatorias cuando hay empate a los 120'.
-      const homePenaltiesInput = document.getElementById(homePenaltiesId);
-      const awayPenaltiesInput = document.getElementById(awayPenaltiesId);
+      // Penales: solo presentes en el panel de "Definición por penales" del admin,
+      // cuando el cruce de eliminatorias quedó empatado a los 120'.
+      const homePenaltiesInput = document.getElementById(`penaltiesHome-${id}`);
+      const awayPenaltiesInput = document.getElementById(`penaltiesAway-${id}`);
       if (homePenaltiesInput && awayPenaltiesInput) {
         const homePenaltiesRaw = homePenaltiesInput.value ?? '';
         const awayPenaltiesRaw = awayPenaltiesInput.value ?? '';
@@ -4285,7 +4289,7 @@
       renderAll();
     }
 
-    async function savePredictionRow(matchId, fromBracket = false) {
+    async function savePredictionRow(matchId) {
       if (!requireAuth('guardar pronostico')) return;
       const match = matches.find(item => item.id === matchId);
       if (!isPredictionEditableForMatch(match)) {
@@ -4296,13 +4300,8 @@
       }
 
       const player = currentProfileName;
-      // La pestaña Predicciones y el bracket de Eliminatorias pueden tener, al mismo
-      // tiempo en el DOM, un input editable para el mismo match.id: el prefijo evita
-      // que se lea (y se guarde) el valor del otro lado.
-      const homeInputId = fromBracket ? `bracketPredictionHome-${matchId}` : `predictionHome-${matchId}`;
-      const awayInputId = fromBracket ? `bracketPredictionAway-${matchId}` : `predictionAway-${matchId}`;
-      const homeInput = document.getElementById(homeInputId);
-      const awayInput = document.getElementById(awayInputId);
+      const homeInput = document.getElementById(`predictionHome-${matchId}`);
+      const awayInput = document.getElementById(`predictionAway-${matchId}`);
       const homeRaw = homeInput?.value ?? '';
       const awayRaw = awayInput?.value ?? '';
       const home = Number(homeRaw);
@@ -4908,6 +4907,42 @@
       `).join('');
     }
 
+    function isKnockoutMatch(match) {
+      return /(16|dieciseisavos|dieciseisavo|8|octavos|octavo|4|cuartos|cuarto|semi|final|tercer)/i.test(match.group || '');
+    }
+
+    // Único lugar donde se cargan penales: el ganador a los 120' se resuelve
+    // automáticamente (hasOfficialResult sin empate); acá el admin solo define
+    // el ganador cuando el cruce quedó empatado, reutilizando saveMatchResult.
+    function renderPenaltiesPanel() {
+      const card = document.getElementById('penaltiesPanelCard');
+      const body = document.getElementById('penaltiesPanelBody');
+      if (!card || !body) return;
+
+      const pendingMatches = isAdmin ? matches.filter(match => isKnockoutMatch(match) && isDrawAtRegulation(match)) : [];
+      card.style.display = pendingMatches.length ? '' : 'none';
+      if (!pendingMatches.length) {
+        body.innerHTML = '';
+        return;
+      }
+
+      const canEdit = !isResultLocked;
+      body.innerHTML = pendingMatches.map(match => {
+        const homeVal = match.homePenalties ?? '';
+        const awayVal = match.awayPenalties ?? '';
+        return `
+          <div class="penalties-row" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 0;border-bottom:1px solid var(--border-color, #e5e7eb)">
+            <span style="min-width:220px">#${match.id} ${escapeHtml(match.home || 'Por definir')} vs ${escapeHtml(match.away || 'Por definir')} (${escapeHtml(String(match.homeGoals))}-${escapeHtml(String(match.awayGoals))})</span>
+            <span class="muted">Penales:</span>
+            <input class="score-input" type="number" min="0" id="penaltiesHome-${match.id}" value="${escapeHtml(String(homeVal))}" ${canEdit ? '' : 'disabled'}>
+            <span>-</span>
+            <input class="score-input" type="number" min="0" id="penaltiesAway-${match.id}" value="${escapeHtml(String(awayVal))}" ${canEdit ? '' : 'disabled'}>
+            ${canEdit ? `<button class="primary btn-sm" onclick="saveMatchResult(${match.id})">Guardar</button>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
     function deletePlayer(index) {
       if (!requireAuth('borrar jugador')) return;
       if (!isAdmin) return;
@@ -5349,117 +5384,39 @@
       const matchesFinal = sortByFixedOrder(bracketMatches.filter(m => isGranFinal(phaseOf(m))), BRACKET_DISPLAY_ORDER.final);
       const matches3 = bracketMatches.filter(m => isTercero(phaseOf(m))).sort((a, b) => a.id - b.id);
 
-      // Función auxiliar para renderizar una única tarjeta de partido
+      // Función auxiliar para renderizar una única tarjeta de partido.
+      // Eliminatorias es solo lectura: nunca expone inputs de carga (ni de
+      // resultado ni de pronóstico), solo lo que ya quedó guardado desde
+      // Fixture (resultado/penales) o Predicciones (pronóstico del usuario).
       function renderMatchCard(match) {
-        const canEditResult = isAdmin && !isResultLocked;
-        
-        let homeScoreHtml = '';
-        let awayScoreHtml = '';
-        let buttonHtml = '';
-        let badgeHtml = '';
-        let officialScoreHtml = '';
-        let penaltiesHtml = '';
+        const homeScoreHtml = `
+          <span class="w-6 text-right font-bold text-xs text-slate-800 dark:text-slate-200 mr-1">${hasOfficialResult(match) ? getMatchScoreText(match, 'home') : '-'}</span>
+        `;
+        const awayScoreHtml = `
+          <span class="w-6 text-right font-bold text-xs text-slate-800 dark:text-slate-200 mr-1">${hasOfficialResult(match) ? getMatchScoreText(match, 'away') : '-'}</span>
+        `;
 
-        if (isAdmin) {
-          // Edición de marcador oficial para admin
-          const homeVal = match.homeGoals ?? '';
-          const awayVal = match.awayGoals ?? '';
-          // Prefijo "bracket" para no colisionar con los ids homeGoals-/awayGoals-
-          // que ya usa la fila de esta misma partida en la pestaña Fixture (misma
-          // id de partido, misma pantalla renderizada en simultáneo en el DOM).
-          // Sin este prefijo, document.getElementById devuelve el <input> del
-          // Fixture en vez del de este cuadro, y saveMatchResult puede guardar
-          // (o borrar) el valor equivocado.
-          homeScoreHtml = `
-            <input class="w-10 h-7 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketHomeGoals-${match.id}" value="${escapeHtml(String(homeVal))}" ${canEditResult ? '' : 'disabled'}>
-          `;
-          awayScoreHtml = `
-            <input class="w-10 h-7 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketAwayGoals-${match.id}" value="${escapeHtml(String(awayVal))}" ${canEditResult ? '' : 'disabled'}>
-          `;
+        const prediction = getPredictionForMatch(match, predictions);
+        const homeVal = prediction ? prediction.home : '';
+        const awayVal = prediction ? prediction.away : '';
+        const points = prediction ? pointsFor(prediction) : 0;
+        const hasPred = prediction !== null;
 
-          // Empate en un cruce de eliminatorias a los 120': la definición es por penales.
-          if (isDrawAtRegulation(match)) {
-            const homePenaltiesVal = match.homePenalties ?? '';
-            const awayPenaltiesVal = match.awayPenalties ?? '';
-            penaltiesHtml = `
-              <div class="mt-1 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-between items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
-                <span>Penales (empate a los 120'):</span>
-                <div class="flex items-center gap-1">
-                  <input class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketHomePenalties-${match.id}" value="${escapeHtml(String(homePenaltiesVal))}" ${canEditResult ? '' : 'disabled'}>
-                  <span>-</span>
-                  <input class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketAwayPenalties-${match.id}" value="${escapeHtml(String(awayPenaltiesVal))}" ${canEditResult ? '' : 'disabled'}>
-                </div>
-              </div>
-            `;
-          }
+        const badgeHtml = hasPred
+          ? `
+            <div class="flex items-center gap-1">
+              <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Guardado</span>
+              ${match.homeGoals !== '' && match.awayGoals !== '' ? `<span class="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">+${points} pts</span>` : ''}
+            </div>
+          `
+          : '';
 
-          if (canEditResult) {
-            buttonHtml = `
-              <button class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1 px-2 rounded transition-colors cursor-pointer border-0" onclick="saveMatchResult(${match.id}, true)">Guardar</button>
-            `;
-          }
-        } else {
-          // Lectura del resultado real (junto al nombre del equipo); incluye penales si el cruce se definió así.
-          homeScoreHtml = `
-            <span class="w-6 text-right font-bold text-xs text-slate-800 dark:text-slate-200 mr-1">${hasOfficialResult(match) ? getMatchScoreText(match, 'home') : '-'}</span>
-          `;
-          awayScoreHtml = `
-            <span class="w-6 text-right font-bold text-xs text-slate-800 dark:text-slate-200 mr-1">${hasOfficialResult(match) ? getMatchScoreText(match, 'away') : '-'}</span>
-          `;
-
-          // Edición/Lectura del pronóstico del usuario (línea inferior)
-          const prediction = getPredictionForMatch(match, predictions);
-          const homeVal = prediction ? prediction.home : '';
-          const awayVal = prediction ? prediction.away : '';
-          const points = prediction ? pointsFor(prediction) : 0;
-          const canEditPred = isPredictionEditableForMatch(match);
-          const isEditingPred = !prediction || editingPredictionRows[match.id];
-          const showInputs = canEditPred && isEditingPred;
-
-          if (showInputs) {
-            buttonHtml = `
-              <button class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1 px-2 rounded transition-colors cursor-pointer border-0" onclick="savePredictionRow(${match.id}, true)">Guardar</button>
-            `;
-          } else {
-            const hasPred = prediction !== null;
-            let btnList = [];
-            if (canEditPred) {
-              btnList.push(`<button class="text-blue-500 hover:text-blue-600 text-[10px] font-semibold underline cursor-pointer border-0 bg-transparent p-0" onclick="editPredictionRow(${match.id})">Editar</button>`);
-            }
-            buttonHtml = btnList.join('');
-
-            if (hasPred) {
-              badgeHtml = `
-                <div class="flex items-center gap-1">
-                  <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Guardado</span>
-                  ${match.homeGoals !== '' && match.awayGoals !== '' ? `<span class="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">+${points} pts</span>` : ''}
-                </div>
-              `;
-            }
-          }
-
-          if (showInputs) {
-            // Prefijo "bracket" para no colisionar con predictionHome-/predictionAway-
-            // de la pestaña Predicciones (mismo match.id, mismo DOM en simultáneo).
-            officialScoreHtml = `
-              <div class="mt-1 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-between items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
-                <span>Pronóstico:</span>
-                <div class="flex items-center gap-1">
-                  <input id="bracketPredictionHome-${match.id}" class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" value="${escapeHtml(String(homeVal))}">
-                  <span>-</span>
-                  <input id="bracketPredictionAway-${match.id}" class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" value="${escapeHtml(String(awayVal))}">
-                </div>
-              </div>
-            `;
-          } else {
-            officialScoreHtml = `
-              <div class="mt-1 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
-                <span>Pronóstico:</span>
-                <span class="font-bold">${prediction ? `${homeVal} - ${awayVal}` : 'Sin cargar'}</span>
-              </div>
-            `;
-          }
-        }
+        const officialScoreHtml = `
+          <div class="mt-1 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+            <span>Pronóstico:</span>
+            <span class="font-bold">${prediction ? `${homeVal} - ${awayVal}` : 'Sin cargar'}</span>
+          </div>
+        `;
 
         return `
           <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-200 w-full flex flex-col gap-2 group/match">
@@ -5490,15 +5447,13 @@
               </div>
             </div>
 
-            <!-- Fila de Acciones y Estados -->
+            <!-- Fila de Estados -->
             <div class="flex justify-between items-center mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/60">
               ${badgeHtml || '<div></div>'}
-              ${buttonHtml}
             </div>
 
             <!-- Pronóstico del usuario -->
             ${officialScoreHtml}
-            ${penaltiesHtml}
           </div>
         `;
       }
@@ -6214,6 +6169,7 @@
       renderHomePodium();
       renderGroupTables();
       renderPlayers();
+      renderPenaltiesPanel();
     }
 
     function assertTest(name, condition) {
