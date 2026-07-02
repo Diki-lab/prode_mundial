@@ -920,38 +920,24 @@
       object-fit: cover;
     }
 
-    .bracket-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 12px;
-      margin-top: 12px;
+    /* Estilos del scrollbar para el bracket de eliminatorias */
+    .bracket-scroll-container::-webkit-scrollbar {
+      height: 8px;
     }
-
-    .bracket-match {
-      border: 1px solid var(--border);
-      background: var(--soft);
-      border-radius: 16px;
-      padding: 12px;
+    .bracket-scroll-container::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 999px;
     }
-
-    .bracket-title {
-      font-size: 12px;
-      font-weight: 900;
-      color: var(--muted);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: .04em;
+    .bracket-scroll-container::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 999px;
     }
-
-    .bracket-team {
-      padding: 8px 10px;
-      border-radius: 12px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      font-weight: 900;
+    body.dark-theme .bracket-scroll-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.05);
     }
-
-    .bracket-team + .bracket-team { margin-top: 6px; }
+    body.dark-theme .bracket-scroll-container::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.4);
+    }
 
     .muted {
       color: var(--muted);
@@ -1446,8 +1432,7 @@
       }
 
       .grid,
-      .profile-grid,
-      .bracket-grid {
+      .profile-grid {
         grid-template-columns: 1fr;
       }
 
@@ -2132,14 +2117,20 @@
               <button class="secondary" onclick="closeManual16vosForm()">Cancelar</button>
             </div>
           </div>
+
+          <button class="primary" id="showManualOctavosFormBtn" onclick="showManualOctavosForm()">Cargar cruces Octavos manualmente</button>
+          <div id="manualOctavosFormContainer" style="display:none">
+            <p class="muted match16-header">Completá los 8 cruces de Octavos de Final (equipos, fecha y hora).</p>
+            <div id="manualOctavosRows"></div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+              <button class="primary" onclick="saveManualOctavos()">Guardar cruces</button>
+              <button class="secondary" onclick="closeManualOctavosForm()">Cancelar</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="card"><h3>16avos de Final</h3><div id="bracket16"></div></div>
-      <div class="card"><h3>Octavos de Final</h3><div id="bracket8"></div></div>
-      <div class="card"><h3>Cuartos de Final</h3><div id="bracket4"></div></div>
-      <div class="card"><h3>Semifinales</h3><div id="bracket2"></div></div>
-      <div class="card"><h3>Tercer Puesto</h3><div id="bracket3"></div></div>
-      <div class="card"><h3>Final</h3><div id="bracketFinal"></div></div>
+      <!-- Contenedor del Bracket Horizontal dinámico -->
+      <div id="bracketScrollContainer" class="card overflow-x-auto p-4 mb-8 bracket-scroll-container"></div>
     </section>
 
     <section id="jugadores" class="tab hidden">
@@ -4182,7 +4173,7 @@
       renderAll();
     }
 
-    function saveMatchResult(id) {
+    function saveMatchResult(id, fromBracket = false) {
       if (!requireAuth('guardar resultado')) return;
       if (!isAdmin) return;
       if (isResultEditingBlocked()) {
@@ -4193,14 +4184,33 @@
       const match = matches.find(item => item.id === id);
       if (!match) return;
 
-      const homeRaw = document.getElementById(`homeGoals-${id}`)?.value ?? '';
-      const awayRaw = document.getElementById(`awayGoals-${id}`)?.value ?? '';
+      // El mismo partido puede tener una fila en Fixture y una tarjeta en el bracket
+      // de Eliminatorias renderizadas en simultáneo (ambas usan el mismo match.id).
+      // El prefijo evita que document.getElementById tome el input equivocado.
+      const homeGoalsId = fromBracket ? `bracketHomeGoals-${id}` : `homeGoals-${id}`;
+      const awayGoalsId = fromBracket ? `bracketAwayGoals-${id}` : `awayGoals-${id}`;
+      const homePenaltiesId = fromBracket ? `bracketHomePenalties-${id}` : `homePenalties-${id}`;
+      const awayPenaltiesId = fromBracket ? `bracketAwayPenalties-${id}` : `awayPenalties-${id}`;
+
+      const homeRaw = document.getElementById(homeGoalsId)?.value ?? '';
+      const awayRaw = document.getElementById(awayGoalsId)?.value ?? '';
 
       match.homeGoals = homeRaw === '' ? '' : Number(homeRaw);
       match.awayGoals = awayRaw === '' ? '' : Number(awayRaw);
 
+      // Penales: solo presentes en el formulario de eliminatorias cuando hay empate a los 120'.
+      const homePenaltiesInput = document.getElementById(homePenaltiesId);
+      const awayPenaltiesInput = document.getElementById(awayPenaltiesId);
+      if (homePenaltiesInput && awayPenaltiesInput) {
+        const homePenaltiesRaw = homePenaltiesInput.value ?? '';
+        const awayPenaltiesRaw = awayPenaltiesInput.value ?? '';
+        match.homePenalties = homePenaltiesRaw === '' ? '' : Number(homePenaltiesRaw);
+        match.awayPenalties = awayPenaltiesRaw === '' ? '' : Number(awayPenaltiesRaw);
+      }
+
       saveSharedData();
       renderAll();
+      renderEliminatorias();
     }
 
     function updateAdminUI() {
@@ -4275,7 +4285,7 @@
       renderAll();
     }
 
-    async function savePredictionRow(matchId) {
+    async function savePredictionRow(matchId, fromBracket = false) {
       if (!requireAuth('guardar pronostico')) return;
       const match = matches.find(item => item.id === matchId);
       if (!isPredictionEditableForMatch(match)) {
@@ -4286,8 +4296,13 @@
       }
 
       const player = currentProfileName;
-      const homeInput = document.getElementById(`predictionHome-${matchId}`);
-      const awayInput = document.getElementById(`predictionAway-${matchId}`);
+      // La pestaña Predicciones y el bracket de Eliminatorias pueden tener, al mismo
+      // tiempo en el DOM, un input editable para el mismo match.id: el prefijo evita
+      // que se lea (y se guarde) el valor del otro lado.
+      const homeInputId = fromBracket ? `bracketPredictionHome-${matchId}` : `predictionHome-${matchId}`;
+      const awayInputId = fromBracket ? `bracketPredictionAway-${matchId}` : `predictionAway-${matchId}`;
+      const homeInput = document.getElementById(homeInputId);
+      const awayInput = document.getElementById(awayInputId);
       const homeRaw = homeInput?.value ?? '';
       const awayRaw = awayInput?.value ?? '';
       const home = Number(homeRaw);
@@ -4312,6 +4327,7 @@
       editingPredictionRows[matchId] = false;
       setPredictionStatus('Pronostico guardado.', false);
       renderAll();
+      renderEliminatorias();
     }
 
     function editPredictionRow(matchId) {
@@ -4324,6 +4340,7 @@
       }
       editingPredictionRows[matchId] = true;
       renderPredictions();
+      renderEliminatorias();
     }
 
     function pointsFor(prediction, matchList = matches) {
@@ -4475,6 +4492,25 @@
 
     function hasOfficialPenalties(match) {
       return hasMatchValue(match?.homePenalties) && hasMatchValue(match?.awayPenalties);
+    }
+
+    function isDrawAtRegulation(match) {
+      return hasOfficialResult(match) && Number(match.homeGoals) === Number(match.awayGoals);
+    }
+
+    // Ganador de un cruce de eliminatorias: por goles a los 120', o por penales
+    // (homePenalties/awayPenalties) cuando hay empate. Devuelve null si el cruce
+    // todavía no se puede resolver (no jugado, o empatado sin penales cargados).
+    function getKnockoutWinnerSide(match) {
+      if (!hasOfficialResult(match)) return null;
+      const homeGoals = Number(match.homeGoals);
+      const awayGoals = Number(match.awayGoals);
+      if (homeGoals !== awayGoals) return homeGoals > awayGoals ? 'home' : 'away';
+      if (!hasOfficialPenalties(match)) return null;
+      const homePenalties = Number(match.homePenalties);
+      const awayPenalties = Number(match.awayPenalties);
+      if (homePenalties === awayPenalties) return null;
+      return homePenalties > awayPenalties ? 'home' : 'away';
     }
 
     function getMatchScoreText(match, side) {
@@ -5191,33 +5227,358 @@
       return bracket;
     }
 
-    function renderBracket(containerId, title, matchesList) {
-      const container = document.getElementById(containerId);
-      if (!container) return;
+    function getTeamEmoji(teamName) {
+      const emojis = {
+        'México': '🇲🇽', 'Sudáfrica': '🇿🇦', 'Corea del Sur': '🇰🇷', 'República Checa': '🇨🇿',
+        'Canadá': '🇨🇦', 'Bosnia y Herzegovina': '🇧🇦', 'Estados Unidos': '🇺🇸', 'Paraguay': '🇵🇾',
+        'Australia': '🇦🇺', 'Turquía': '🇹🇷', 'Catar': '🇶🇦', 'Suiza': '🇨🇭', 'Brasil': '🇧🇷',
+        'Marruecos': '🇲🇦', 'Haití': '🇭🇹', 'Escocia': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Alemania': '🇩🇪', 'Curazao': '🇨🇼',
+        'Países Bajos': '🇳🇱', 'Japón': '🇯🇵', 'Costa de Marfil': '🇨🇮', 'Ecuador': '🇪🇨',
+        'Suecia': '🇸🇪', 'Túnez': '🇹🇳', 'España': '🇪🇸', 'Cabo Verde': '🇨🇻', 'Bélgica': '🇧🇪',
+        'Egipto': '🇪🇬', 'Arabia Saudita': '🇸🇦', 'Uruguay': '🇺🇾', 'Irán': '🇮🇷', 'Nueva Zelanda': '🇳🇿',
+        'Austria': '🇦🇹', 'Jordania': '🇯🇴', 'Francia': '🇫🇷', 'Senegal': '🇸🇳', 'Irak': '🇮🇶',
+        'Noruega': '🇳🇴', 'Argentina': '🇦🇷', 'Argelia': '🇩🇿', 'Portugal': '🇵🇹', 'RD Congo': '🇨🇩',
+        'R.D. del Congo': '🇨🇩', 'Inglaterra': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Croacia': '🇭🇷', 'Ghana': '🇬🇭', 'Panamá': '🇵🇦',
+        'Uzbekistán': '🇺🇿', 'Colombia': '🇨🇴', 'Italia': '🇮🇹', 'Chile': '🇨🇱', 'Perú': '🇵🇪'
+      };
+      const name = (teamName || '').trim();
+      return emojis[name] || '🏳️';
+    }
 
-      container.innerHTML = `<div class="bracket-grid">${matchesList.map((match, index) => `
-        <div class="bracket-match">
-          <div class="bracket-title">${escapeHtml(title)} ${index + 1}</div>
-          <div class="bracket-team">${renderTeam(match.home)}</div>
-          <div class="bracket-team">${renderTeam(match.away)}</div>
-        </div>
-      `).join('')}</div>`;
+    // Topología fija del cuadro de eliminatorias Mundial 2026 (validada contra el
+    // cuadro oficial FIFA): qué partido de la fase anterior alimenta cada slot
+    // (home/away) de la fase siguiente, y si toma al ganador o al perdedor.
+    const BRACKET_ADVANCEMENT = [
+      { id: 89, group: 'Octavos de Final', home: { from: 74, result: 'winner' }, away: { from: 77, result: 'winner' } },
+      { id: 90, group: 'Octavos de Final', home: { from: 73, result: 'winner' }, away: { from: 75, result: 'winner' } },
+      { id: 91, group: 'Octavos de Final', home: { from: 76, result: 'winner' }, away: { from: 78, result: 'winner' } },
+      { id: 92, group: 'Octavos de Final', home: { from: 79, result: 'winner' }, away: { from: 80, result: 'winner' } },
+      { id: 93, group: 'Octavos de Final', home: { from: 83, result: 'winner' }, away: { from: 84, result: 'winner' } },
+      { id: 94, group: 'Octavos de Final', home: { from: 81, result: 'winner' }, away: { from: 82, result: 'winner' } },
+      { id: 95, group: 'Octavos de Final', home: { from: 86, result: 'winner' }, away: { from: 88, result: 'winner' } },
+      { id: 96, group: 'Octavos de Final', home: { from: 85, result: 'winner' }, away: { from: 87, result: 'winner' } },
+      { id: 97,  group: 'Cuartos de Final', home: { from: 89, result: 'winner' }, away: { from: 90, result: 'winner' } },
+      { id: 98,  group: 'Cuartos de Final', home: { from: 93, result: 'winner' }, away: { from: 94, result: 'winner' } },
+      { id: 99,  group: 'Cuartos de Final', home: { from: 91, result: 'winner' }, away: { from: 92, result: 'winner' } },
+      { id: 100, group: 'Cuartos de Final', home: { from: 95, result: 'winner' }, away: { from: 96, result: 'winner' } },
+      { id: 101, group: 'Semifinales', home: { from: 97, result: 'winner' }, away: { from: 98, result: 'winner' } },
+      { id: 102, group: 'Semifinales', home: { from: 99, result: 'winner' }, away: { from: 100, result: 'winner' } },
+      { id: 103, group: 'Tercer Puesto', home: { from: 101, result: 'loser' }, away: { from: 102, result: 'loser' } },
+      { id: 104, group: 'Final', home: { from: 101, result: 'winner' }, away: { from: 102, result: 'winner' } }
+    ];
+
+    function resolveBracketSlotTeam(sourceMatch, resultType) {
+      if (!sourceMatch) return '';
+      const winnerSide = getKnockoutWinnerSide(sourceMatch);
+      if (!winnerSide) return '';
+      const loserSide = winnerSide === 'home' ? 'away' : 'home';
+      const side = resultType === 'loser' ? loserSide : winnerSide;
+      return sourceMatch[side] || '';
+    }
+
+    // Calcula el cuadro "efectivo" propagando ganadores/perdedores según
+    // BRACKET_ADVANCEMENT, sin pisar cruces que ya tengan equipo cargado (manual
+    // o de una propagación previa) y sin duplicar filas existentes en `matches`.
+    function computeBracketAdvancement(matchList) {
+      const sourceById = new Map(matchList.map(m => [m.id, m]));
+      const result = matchList.map(m => ({ ...m }));
+      const resultById = new Map(result.map(m => [m.id, m]));
+      let changed = false;
+
+      BRACKET_ADVANCEMENT.forEach(slot => {
+        const homeTeam = resolveBracketSlotTeam(sourceById.get(slot.home.from), slot.home.result);
+        const awayTeam = resolveBracketSlotTeam(sourceById.get(slot.away.from), slot.away.result);
+
+        let target = resultById.get(slot.id);
+        if (!target) {
+          if (!homeTeam && !awayTeam) return; // nada para avanzar todavía: dejar el placeholder genérico
+          target = { id: slot.id, date: '', time: '', kickoff: '', group: slot.group, home: '', away: '', homeGoals: '', awayGoals: '' };
+          result.push(target);
+          resultById.set(slot.id, target);
+        }
+
+        if (!target.home && homeTeam) { target.home = homeTeam; changed = true; }
+        if (!target.away && awayTeam) { target.away = awayTeam; changed = true; }
+      });
+
+      return { matches: result, changed };
+    }
+
+    // Orden visual fijo de cada columna (de arriba hacia abajo), tal cual el cuadro
+    // oficial FIFA: NO es el orden ascendente de ID. Los ids consecutivos en cada
+    // array son la pareja que efectivamente se enfrenta / alimenta el mismo slot
+    // de la fase siguiente (debe coincidir con BRACKET_ADVANCEMENT).
+    const BRACKET_DISPLAY_ORDER = {
+      16: [74, 77, 73, 75, 83, 84, 81, 82, 76, 78, 79, 80, 86, 88, 85, 87],
+      8: [89, 90, 93, 94, 91, 92, 95, 96],
+      4: [97, 98, 99, 100],
+      semi: [101, 102],
+      final: [104]
+    };
+
+    function sortByFixedOrder(list, order) {
+      const rank = new Map(order.map((id, index) => [id, index]));
+      return [...list].sort((a, b) => {
+        const rankA = rank.has(a.id) ? rank.get(a.id) : Number.MAX_SAFE_INTEGER;
+        const rankB = rank.has(b.id) ? rank.get(b.id) : Number.MAX_SAFE_INTEGER;
+        return rankA !== rankB ? rankA - rankB : a.id - b.id;
+      });
     }
 
     function renderEliminatorias() {
-      const matches16 = matches.filter(m => /(16|dieciseisavos|dieciseisavo)/i.test(m.group || m.phase || m.stage || m.round || ''));
-      const matches8 = matches.filter(m => /(8|octavos|octavo)/i.test(m.group || m.phase || m.stage || m.round || ''));
-      const matches4 = matches.filter(m => /(4|cuartos|cuarto)/i.test(m.group || m.phase || m.stage || m.round || ''));
-      const matchesSemi = matches.filter(m => /semi/i.test(m.group || m.phase || m.stage || m.round || ''));
-      const matches3 = matches.filter(m => /(3|tercer|tercero).*(puesto|cuarto)|puesto.*(3|tercer|tercero)/i.test(m.group || m.phase || m.stage || m.round || ''));
-      const matchesFinal = matches.filter(m => /final/i.test(m.group || m.phase || m.stage || m.round || '') && !/(3|tercer|tercero).*(puesto|cuarto)|puesto.*(3|tercer|tercero)/i.test(m.group || m.phase || m.stage || m.round || ''));
+      const container = document.getElementById('bracketScrollContainer');
+      if (!container) return;
 
-      renderBracket('bracket16', '16avos de Final', matches16);
-      renderBracket('bracket8', 'Octavos de Final', matches8);
-      renderBracket('bracket4', 'Cuartos de Final', matches4);
-      renderBracket('bracket2', 'Semifinales', matchesSemi);
-      renderBracket('bracket3', 'Tercer Puesto', matches3);
-      renderBracket('bracketFinal', 'Final', matchesFinal);
+      const advancement = computeBracketAdvancement(matches);
+      const bracketMatches = advancement.matches;
+
+      const phaseOf = (m) => m.group || m.phase || m.stage || m.round || '';
+      const is16 = (g) => /(16|dieciseisavos|dieciseisavo)/i.test(g);
+      const is8 = (g) => /(8|octavos|octavo)/i.test(g);
+      const is4 = (g) => /(4|cuartos|cuarto)/i.test(g);
+      const isSemi = (g) => /semi/i.test(g);
+      const isTercero = (g) => /(3|tercer|tercero).*(puesto|cuarto)|puesto.*(3|tercer|tercero)/i.test(g);
+      // "final" aparece como sufijo en el nombre de TODAS las fases ("Octavos de Final", "Cuartos de Final", etc.),
+      // así que la Gran Final sólo puede identificarse excluyendo explícitamente las demás fases.
+      const isGranFinal = (g) => /final/i.test(g) && !is16(g) && !is8(g) && !is4(g) && !isSemi(g) && !isTercero(g);
+
+      const matches16 = sortByFixedOrder(bracketMatches.filter(m => is16(phaseOf(m))), BRACKET_DISPLAY_ORDER[16]);
+      const matches8 = sortByFixedOrder(bracketMatches.filter(m => is8(phaseOf(m))), BRACKET_DISPLAY_ORDER[8]);
+      const matches4 = sortByFixedOrder(bracketMatches.filter(m => is4(phaseOf(m))), BRACKET_DISPLAY_ORDER[4]);
+      const matchesSemi = sortByFixedOrder(bracketMatches.filter(m => isSemi(phaseOf(m))), BRACKET_DISPLAY_ORDER.semi);
+      const matchesFinal = sortByFixedOrder(bracketMatches.filter(m => isGranFinal(phaseOf(m))), BRACKET_DISPLAY_ORDER.final);
+      const matches3 = bracketMatches.filter(m => isTercero(phaseOf(m))).sort((a, b) => a.id - b.id);
+
+      // Función auxiliar para renderizar una única tarjeta de partido
+      function renderMatchCard(match) {
+        const canEditResult = isAdmin && !isResultLocked;
+        
+        let homeScoreHtml = '';
+        let awayScoreHtml = '';
+        let buttonHtml = '';
+        let badgeHtml = '';
+        let officialScoreHtml = '';
+        let penaltiesHtml = '';
+
+        if (isAdmin) {
+          // Edición de marcador oficial para admin
+          const homeVal = match.homeGoals ?? '';
+          const awayVal = match.awayGoals ?? '';
+          // Prefijo "bracket" para no colisionar con los ids homeGoals-/awayGoals-
+          // que ya usa la fila de esta misma partida en la pestaña Fixture (misma
+          // id de partido, misma pantalla renderizada en simultáneo en el DOM).
+          // Sin este prefijo, document.getElementById devuelve el <input> del
+          // Fixture en vez del de este cuadro, y saveMatchResult puede guardar
+          // (o borrar) el valor equivocado.
+          homeScoreHtml = `
+            <input class="w-10 h-7 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketHomeGoals-${match.id}" value="${escapeHtml(String(homeVal))}" ${canEditResult ? '' : 'disabled'}>
+          `;
+          awayScoreHtml = `
+            <input class="w-10 h-7 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketAwayGoals-${match.id}" value="${escapeHtml(String(awayVal))}" ${canEditResult ? '' : 'disabled'}>
+          `;
+
+          // Empate en un cruce de eliminatorias a los 120': la definición es por penales.
+          if (isDrawAtRegulation(match)) {
+            const homePenaltiesVal = match.homePenalties ?? '';
+            const awayPenaltiesVal = match.awayPenalties ?? '';
+            penaltiesHtml = `
+              <div class="mt-1 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-between items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
+                <span>Penales (empate a los 120'):</span>
+                <div class="flex items-center gap-1">
+                  <input class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketHomePenalties-${match.id}" value="${escapeHtml(String(homePenaltiesVal))}" ${canEditResult ? '' : 'disabled'}>
+                  <span>-</span>
+                  <input class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" id="bracketAwayPenalties-${match.id}" value="${escapeHtml(String(awayPenaltiesVal))}" ${canEditResult ? '' : 'disabled'}>
+                </div>
+              </div>
+            `;
+          }
+
+          if (canEditResult) {
+            buttonHtml = `
+              <button class="bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold py-1 px-2 rounded transition-colors cursor-pointer border-0" onclick="saveMatchResult(${match.id}, true)">Guardar</button>
+            `;
+          }
+        } else {
+          // Lectura del resultado real (junto al nombre del equipo); incluye penales si el cruce se definió así.
+          homeScoreHtml = `
+            <span class="w-6 text-right font-bold text-xs text-slate-800 dark:text-slate-200 mr-1">${hasOfficialResult(match) ? getMatchScoreText(match, 'home') : '-'}</span>
+          `;
+          awayScoreHtml = `
+            <span class="w-6 text-right font-bold text-xs text-slate-800 dark:text-slate-200 mr-1">${hasOfficialResult(match) ? getMatchScoreText(match, 'away') : '-'}</span>
+          `;
+
+          // Edición/Lectura del pronóstico del usuario (línea inferior)
+          const prediction = getPredictionForMatch(match, predictions);
+          const homeVal = prediction ? prediction.home : '';
+          const awayVal = prediction ? prediction.away : '';
+          const points = prediction ? pointsFor(prediction) : 0;
+          const canEditPred = isPredictionEditableForMatch(match);
+          const isEditingPred = !prediction || editingPredictionRows[match.id];
+          const showInputs = canEditPred && isEditingPred;
+
+          if (showInputs) {
+            buttonHtml = `
+              <button class="bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-bold py-1 px-2 rounded transition-colors cursor-pointer border-0" onclick="savePredictionRow(${match.id}, true)">Guardar</button>
+            `;
+          } else {
+            const hasPred = prediction !== null;
+            let btnList = [];
+            if (canEditPred) {
+              btnList.push(`<button class="text-blue-500 hover:text-blue-600 text-[10px] font-semibold underline cursor-pointer border-0 bg-transparent p-0" onclick="editPredictionRow(${match.id})">Editar</button>`);
+            }
+            buttonHtml = btnList.join('');
+
+            if (hasPred) {
+              badgeHtml = `
+                <div class="flex items-center gap-1">
+                  <span class="text-[9px] text-emerald-600 dark:text-emerald-400 font-bold">✓ Guardado</span>
+                  ${match.homeGoals !== '' && match.awayGoals !== '' ? `<span class="bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 text-[9px] font-extrabold px-1.5 py-0.5 rounded-full ml-1">+${points} pts</span>` : ''}
+                </div>
+              `;
+            }
+          }
+
+          if (showInputs) {
+            // Prefijo "bracket" para no colisionar con predictionHome-/predictionAway-
+            // de la pestaña Predicciones (mismo match.id, mismo DOM en simultáneo).
+            officialScoreHtml = `
+              <div class="mt-1 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-between items-center gap-2 text-[10px] text-slate-500 dark:text-slate-400">
+                <span>Pronóstico:</span>
+                <div class="flex items-center gap-1">
+                  <input id="bracketPredictionHome-${match.id}" class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" value="${escapeHtml(String(homeVal))}">
+                  <span>-</span>
+                  <input id="bracketPredictionAway-${match.id}" class="w-8 h-6 text-center border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 rounded font-bold text-xs" type="number" min="0" value="${escapeHtml(String(awayVal))}">
+                </div>
+              </div>
+            `;
+          } else {
+            officialScoreHtml = `
+              <div class="mt-1 pt-1 border-t border-dashed border-slate-200 dark:border-slate-800 flex justify-between items-center text-[10px] text-slate-500 dark:text-slate-400">
+                <span>Pronóstico:</span>
+                <span class="font-bold">${prediction ? `${homeVal} - ${awayVal}` : 'Sin cargar'}</span>
+              </div>
+            `;
+          }
+        }
+
+        return `
+          <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-200 w-full flex flex-col gap-2 group/match">
+            <!-- Encabezado de la Tarjeta -->
+            <div class="flex justify-between items-center text-[10px] text-slate-400 font-medium pb-1 border-b border-slate-100 dark:border-slate-800/60">
+              <span class="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded font-bold">#${match.id}</span>
+              <span>${match.date} ${match.time || ''}</span>
+            </div>
+
+            <!-- Estructura de la Tarjeta (País 1 arriba, País 2 abajo) -->
+            <div class="flex flex-col gap-2">
+              <!-- Fila Local (País 1) -->
+              <div class="flex justify-between items-center gap-2">
+                <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                  <span class="text-xs mr-0.5 select-none">${getTeamEmoji(match.home)}</span>
+                  <span class="truncate text-xs font-bold ${match.home ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500 italic'}">${renderTeam(match.home || 'Por definir')}</span>
+                </div>
+                ${homeScoreHtml}
+              </div>
+
+              <!-- Fila Visitante (País 2) -->
+              <div class="flex justify-between items-center gap-2">
+                <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                  <span class="text-xs mr-0.5 select-none">${getTeamEmoji(match.away)}</span>
+                  <span class="truncate text-xs font-bold ${match.away ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500 italic'}">${renderTeam(match.away || 'Por definir')}</span>
+                </div>
+                ${awayScoreHtml}
+              </div>
+            </div>
+
+            <!-- Fila de Acciones y Estados -->
+            <div class="flex justify-between items-center mt-1 pt-1 border-t border-slate-100 dark:border-slate-800/60">
+              ${badgeHtml || '<div></div>'}
+              ${buttonHtml}
+            </div>
+
+            <!-- Pronóstico del usuario -->
+            ${officialScoreHtml}
+            ${penaltiesHtml}
+          </div>
+        `;
+      }
+
+      function renderPlaceholderCard() {
+        return `
+          <div class="bg-slate-100 dark:bg-slate-800/40 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl p-3 w-full flex flex-col gap-2 opacity-70">
+            <div class="flex justify-between items-center text-[10px] text-slate-400 font-medium pb-1 border-b border-slate-200 dark:border-slate-800/60">
+              <span>&nbsp;</span>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="flex justify-between items-center gap-2">
+                <span class="text-xs font-bold text-slate-400 dark:text-slate-500 italic">Por definir</span>
+              </div>
+              <div class="flex justify-between items-center gap-2">
+                <span class="text-xs font-bold text-slate-400 dark:text-slate-500 italic">Por definir</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      function renderColumn(phaseId, title, list, slotCount) {
+        const cards = list.map(renderMatchCard);
+        while (cards.length < slotCount) cards.push(renderPlaceholderCard());
+
+        return `
+          <div class="flex flex-col justify-around w-[280px] shrink-0" id="${phaseId}">
+            <button type="button" onclick="scrollBracketToPhase('${phaseId}')" class="w-full text-center font-black text-sm tracking-wider uppercase text-slate-500 dark:text-slate-400 pb-2 border-0 border-b border-slate-200 dark:border-slate-800 mb-2 bg-transparent cursor-pointer hover:text-slate-800 dark:hover:text-slate-100 transition-colors">${title}</button>
+            <div class="flex-1 flex flex-col justify-around py-4 gap-4">
+              ${cards.join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Renderizamos la estructura de 5 columnas del bracket (con placeholders hasta completar el cuadro)
+      let html = `
+        <div class="flex flex-row gap-8 items-stretch min-w-[1400px] p-6 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800" id="tournamentBracketContainer">
+          ${renderColumn('bracketPhase16', '16avos de Final', matches16, 16)}
+          ${renderColumn('bracketPhase8', 'Octavos de Final', matches8, 8)}
+          ${renderColumn('bracketPhase4', 'Cuartos de Final', matches4, 4)}
+          ${renderColumn('bracketPhaseSemi', 'Semifinales', matchesSemi, 2)}
+          ${renderColumn('bracketPhaseFinal', 'Gran Final', matchesFinal, 1)}
+        </div>
+      `;
+
+      // Renderizamos el Tercer Puesto por separado abajo
+      if (matches3 && matches3.length > 0) {
+        html += `
+          <div class="card max-w-[320px] mx-auto mt-6">
+            <h3 class="text-center text-sm font-black tracking-wider uppercase text-slate-500 dark:text-slate-400 pb-2 border-b border-slate-200 dark:border-slate-800 mb-4">🥉 Tercer Puesto</h3>
+            <div class="flex flex-col gap-4">
+              ${matches3.map(renderMatchCard).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+
+      // Persistencia del avance automático: se intenta DESPUÉS de pintar el cuadro,
+      // envuelta en try/catch, para que un problema de guardado (Firebase todavía no
+      // listo, sin red, etc.) nunca deje el bracket sin renderizar para el admin.
+      if (isAdmin && advancement.changed) {
+        matches = bracketMatches;
+        localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
+        try {
+          window.prodeFirebase?.saveData({ matches })?.catch(error => {
+            console.error('Error al guardar el avance automático del cuadro:', error);
+          });
+        } catch (error) {
+          console.error('Error al guardar el avance automático del cuadro:', error);
+        }
+      }
+    }
+
+    function scrollBracketToPhase(phaseId) {
+      const column = document.getElementById(phaseId);
+      if (column) column.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
     }
 
     function getQualifiedTeams() {
@@ -5356,35 +5717,72 @@
       { id: 88,  date: '03/07/2026', time: '15:00' }
     ];
 
-    function showManual16vosForm() {
+    const SCHEDULE_OCTAVOS = [
+      { id: 89, date: '', time: '' },
+      { id: 90, date: '', time: '' },
+      { id: 91, date: '', time: '' },
+      { id: 92, date: '', time: '' },
+      { id: 93, date: '', time: '' },
+      { id: 94, date: '', time: '' },
+      { id: 95, date: '', time: '' },
+      { id: 96, date: '', time: '' }
+    ];
+
+    // Configuración genérica para los módulos de carga manual de cruces por fase.
+    // El de 16avos usa fecha/hora fijas (calendario oficial ya conocido); el de octavos
+    // todavía no tiene fecha oficial confirmada, así que el admin la completa a mano.
+    const PHASE_MANUAL_CONFIGS = {
+      '16avos': {
+        schedule: SCHEDULE_16AVOS,
+        groupLabel: '16avos de Final',
+        fixedSchedule: true,
+        formContainerId: 'manual16vosFormContainer',
+        rowsContainerId: 'manual16vosRows',
+        inputPrefix: 'match16'
+      },
+      octavos: {
+        schedule: SCHEDULE_OCTAVOS,
+        groupLabel: 'Octavos de Final',
+        fixedSchedule: false,
+        formContainerId: 'manualOctavosFormContainer',
+        rowsContainerId: 'manualOctavosRows',
+        inputPrefix: 'match8'
+      }
+    };
+
+    function showManualPhaseForm(phaseKey) {
       if (!isAdmin) return;
-      const container = document.getElementById('manual16vosFormContainer');
-      const rowsContainer = document.getElementById('manual16vosRows');
+      const config = PHASE_MANUAL_CONFIGS[phaseKey];
+      const container = document.getElementById(config.formContainerId);
+      const rowsContainer = document.getElementById(config.rowsContainerId);
       if (!container || !rowsContainer) return;
 
-      const existing16 = matches.filter(m =>
-        /(16|dieciseisavos|dieciseisavo)/i.test(m.group || '')
-      );
+      const scheduleIds = new Set(config.schedule.map(slot => slot.id));
       const existingById = {};
-      existing16.forEach(m => { existingById[m.id] = m; });
+      matches.filter(m => scheduleIds.has(m.id)).forEach(m => { existingById[m.id] = m; });
 
-      rowsContainer.innerHTML = SCHEDULE_16AVOS.map(({ id, date, time }) => {
+      rowsContainer.innerHTML = config.schedule.map(({ id, date, time }, index) => {
         const pre = existingById[id];
         const homeVal = escapeHtml(pre?.home || '');
         const awayVal = escapeHtml(pre?.away || '');
-        const num = id - 72;
+        const num = index + 1;
+        const dateTimeHtml = config.fixedSchedule
+          ? `Partido ${num} &mdash; ${date} ${time}`
+          : `Partido ${num} &mdash;
+             <input id="${config.inputPrefix}date-${id}" value="${escapeHtml(pre?.date || '')}" placeholder="DD/MM/AAAA" style="width:110px">
+             <input id="${config.inputPrefix}time-${id}" value="${escapeHtml(pre?.time || '')}" placeholder="HH:MM" style="width:70px">`;
         return `
           <div>
-            <div class="match16-header">Partido ${num} &mdash; ${date} ${time}</div>
+            <div class="match16-header">${dateTimeHtml}</div>
             <div class="match16-row">
               <div>
                 <div class="match16-label">Local</div>
-                <input id="match16home-${id}" value="${homeVal}" placeholder="Ej: Argentina" style="width:100%">
+                <input id="${config.inputPrefix}home-${id}" value="${homeVal}" placeholder="Ej: Argentina" style="width:100%">
               </div>
               <div class="match16-vs">vs</div>
               <div>
                 <div class="match16-label">Visitante</div>
-                <input id="match16away-${id}" value="${awayVal}" placeholder="Ej: Brasil" style="width:100%">
+                <input id="${config.inputPrefix}away-${id}" value="${awayVal}" placeholder="Ej: Brasil" style="width:100%">
               </div>
             </div>
           </div>
@@ -5395,47 +5793,62 @@
       container.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function closeManual16vosForm() {
-      const container = document.getElementById('manual16vosFormContainer');
+    function closeManualPhaseForm(phaseKey) {
+      const container = document.getElementById(PHASE_MANUAL_CONFIGS[phaseKey].formContainerId);
       if (container) container.style.display = 'none';
     }
 
-    async function saveManual16avos() {
-      if (!requireAuth('guardar 16avos')) return;
+    async function saveManualPhase(phaseKey) {
+      if (!requireAuth(`guardar ${phaseKey}`)) return;
       if (!isAdmin) return;
+      const config = PHASE_MANUAL_CONFIGS[phaseKey];
 
-      const generated = SCHEDULE_16AVOS.map(({ id, date, time }) => {
-        const home = (document.getElementById(`match16home-${id}`)?.value || '').trim();
-        const away = (document.getElementById(`match16away-${id}`)?.value || '').trim();
-        const [day, month, year] = date.split('/').map(Number);
-        const kickoff = `${String(year).padStart(4,'0')}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}T${time}:00-03:00`;
-        return { id, date, time, group: '16avos de Final', home, away, homeGoals: '', awayGoals: '', kickoff };
+      const generated = config.schedule.map(({ id, date, time }) => {
+        const home = (document.getElementById(`${config.inputPrefix}home-${id}`)?.value || '').trim();
+        const away = (document.getElementById(`${config.inputPrefix}away-${id}`)?.value || '').trim();
+        const finalDate = config.fixedSchedule ? date : (document.getElementById(`${config.inputPrefix}date-${id}`)?.value || '').trim();
+        const finalTime = config.fixedSchedule ? time : (document.getElementById(`${config.inputPrefix}time-${id}`)?.value || '').trim();
+
+        let kickoff = '';
+        const [day, month, year] = (finalDate || '').split('/').map(Number);
+        if (day && month && year) {
+          kickoff = `${String(year).padStart(4, '0')}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}T${finalTime || '00:00'}:00-03:00`;
+        }
+
+        return { id, date: finalDate, time: finalTime, group: config.groupLabel, home, away, homeGoals: '', awayGoals: '', kickoff };
       });
 
-      const missing = generated.filter(m => !m.home || !m.away);
+      const missing = generated.filter(m => !m.home || !m.away || !m.date || !m.time);
       if (missing.length) {
         alert(`Faltan completar ${missing.length} cruce(s) antes de guardar.`);
         return;
       }
 
-      const baseMatches = matches.filter(m =>
-        m.id < 73 || !/(16|dieciseisavos|dieciseisavo)/i.test(m.group || '')
-      );
+      const scheduleIds = new Set(config.schedule.map(slot => slot.id));
+      const baseMatches = matches.filter(m => !scheduleIds.has(m.id));
       matches = [...baseMatches, ...generated];
       localStorage.setItem(STORAGE_KEYS.matches, JSON.stringify(matches));
 
       try {
         await window.prodeFirebase.saveData({ matches });
-        closeManual16vosForm();
-        alert('¡16avos de Final guardados correctamente!');
+        closeManualPhaseForm(phaseKey);
+        alert(`¡${config.groupLabel} guardados correctamente!`);
         renderAll();
         renderEliminatorias();
         renderFixture();
       } catch (error) {
-        console.error('Error al guardar 16avos manuales:', error);
+        console.error(`Error al guardar ${config.groupLabel} manuales:`, error);
         alert('Error al guardar. Revisá la consola.');
       }
     }
+
+    function showManual16vosForm() { showManualPhaseForm('16avos'); }
+    function closeManual16vosForm() { closeManualPhaseForm('16avos'); }
+    async function saveManual16avos() { return saveManualPhase('16avos'); }
+
+    function showManualOctavosForm() { showManualPhaseForm('octavos'); }
+    function closeManualOctavosForm() { closeManualPhaseForm('octavos'); }
+    async function saveManualOctavos() { return saveManualPhase('octavos'); }
 
     const TEAM_NAMES_ES = {
       // CONMEBOL
