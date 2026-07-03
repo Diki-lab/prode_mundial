@@ -2113,7 +2113,7 @@
         <p class="muted">Cuadro de solo lectura. Los cruces se definen y los resultados/penales se cargan desde el panel Admin.</p>
       </div>
       <!-- Contenedor del Bracket Horizontal dinámico -->
-      <div id="bracketScrollContainer" class="card overflow-x-auto overflow-y-visible p-4 mb-8 bracket-scroll-container"></div>
+      <div id="bracketScrollContainer" class="overflow-x-auto overflow-y-visible mb-8 bracket-scroll-container bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800 p-6"></div>
     </section>
 
     <section id="jugadores" class="tab hidden">
@@ -5491,7 +5491,7 @@
       // primer hijo (capa absoluta detrás de las columnas, ver z-[1] arriba) y
       // se redibuja después de pintar, midiendo las tarjetas ya en el DOM.
       let html = `
-        <div class="flex flex-row gap-8 items-stretch min-w-[1400px] h-fit p-6 bg-slate-50 dark:bg-slate-900/40 rounded-2xl border border-slate-200 dark:border-slate-800 relative" id="tournamentBracketContainer">
+        <div class="flex flex-row gap-8 items-stretch min-w-[1400px] h-fit relative" id="tournamentBracketContainer">
           <svg id="bracketConnectorsSvg" class="absolute inset-0 z-0 pointer-events-none" style="overflow:visible"></svg>
           ${renderColumn('bracketPhase16', '16avos de Final', BRACKET_DISPLAY_ORDER[16], '16avos de Final')}
           ${renderColumn('bracketPhase8', 'Octavos de Final', BRACKET_DISPLAY_ORDER[8], 'Octavos de Final')}
