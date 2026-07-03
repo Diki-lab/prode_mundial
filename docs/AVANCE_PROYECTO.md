@@ -666,3 +666,64 @@ Estado:
 
 - Dia 7 queda como `COMPLETADO ✅`.
 - Publicacion final: `OK ✅`.
+
+## Actualizacion 2 de julio de 2026 - Eliminatorias solo lectura y pulido visual del bracket
+
+Serie de pasadas sobre el menu Eliminatorias (`index.html`), documentadas en detalle en
+`docs/BRACKET.md`. No se toco esquema de datos ni reglas de Firestore.
+
+### Eliminatorias pasa a ser solo lectura
+
+- Se eliminaron del bracket todos los inputs de carga (resultado y pronostico) y sus
+  botones de guardado. El bracket ahora solo muestra: resultado real, pronostico del
+  usuario logueado y puntos ganados.
+- Causa: el bracket llego a tener sus propios inputs con ids que colisionaban con los de
+  Fixture/Predicciones para el mismo partido (mismo id de partido, mismo DOM en
+  simultaneo), lo que en mas de una ocasion termino borrando resultados reales ya
+  cargados. Se elimino el patron de raiz en vez de seguir parchando con prefijos de id.
+- Se retiraron los ids `bracket*` y el flag `fromBracket` de `saveMatchResult` /
+  `savePredictionRow`, que quedaron sin uso.
+
+### Migracion de carga manual al panel Admin
+
+- La definicion manual de cruces (16avos/Octavos, `PHASE_MANUAL_CONFIGS`) se movio del
+  menu Eliminatorias al panel Admin (`#jugadores`), conservando el mismo esquema de
+  persistencia en `prode/mundial2026.matches`.
+- Se agrego en el panel Admin una tarjeta nueva de "Definicion por penales"
+  (`#penaltiesPanelCard`) para cargar penales en cruces empatados a los 120', reutilizando
+  `saveMatchResult`. Antes de este cambio no existia ningun lugar para cargar penales
+  fuera del bracket.
+- El avance automatico de ganadores por la topologia (`getKnockoutWinnerSide`,
+  `computeBracketAdvancement`, `BRACKET_ADVANCEMENT`) no se toco: sigue resolviendo
+  ganador por goles a los 120' o por penales en caso de empate.
+
+### Pulido visual del bracket
+
+- Placeholders de cruces sin resolver ahora muestran procedencia real ("Ganador #74",
+  "Perdedor #101") leyendo la topologia existente, en vez de un generico "Por definir".
+  Esto unifico el render de tarjetas reales y placeholders en una sola funcion
+  (`renderMatchCard`), jubilando `renderPlaceholderCard`.
+- Se agregaron conectores SVG entre cada cruce y sus dos partidos de origen, medidos con
+  `getBoundingClientRect` despues del render y recalculados en `resize` (sin listener de
+  scroll: el SVG vive dentro del mismo contenedor que scrollea, asi que se mueve solo con
+  el contenido).
+- Se confirmo que la alineacion vertical de los cruces (`justify-around` + `gap` parejo
+  entre columnas) ya centra cada cruce con sus dos partidos de origen sin necesitar
+  multiplicadores de espaciado por fase; la unica condicion real es que todas las
+  tarjetas midan lo mismo.
+
+### Pendiente detectado (no resuelto en esta pasada)
+
+- Los penales no se ven realmente en linea con el gol: el `span` que los muestra
+  (`w-6`, sin `whitespace-nowrap`) envuelve el texto en mas de una linea, lo que rompe la
+  altura uniforme de tarjeta en los cruces con penales y probablemente tambien explica que
+  el fondo gris del contenedor no cubra todo el alto del contenido. Detalle completo y
+  solucion propuesta en `docs/BRACKET.md` seccion 5 y `docs/FUNCIONALIDADES_PENDIENTES.md`
+  (Bug 3).
+
+Validacion:
+
+- `node --check` sobre el script embebido: OK en cada pasada.
+- Grep de verificacion: cero ids duplicados, cero inputs dentro de
+  `renderEliminatorias`, cero referencias a `bracket*`/`fromBracket`.
+- No se corrio la app en vivo en ninguna de estas pasadas (no solicitado).

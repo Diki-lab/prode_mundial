@@ -56,6 +56,8 @@ El proyecto está implementado como una **Single Page Application (SPA) estátic
       "away": "string (Equipo Visitante)",
       "homeGoals": "number | string (Goles reales, '' si no inició)",
       "awayGoals": "number | string (Goles reales, '' si no inició)",
+      "homePenalties": "number | string (Penales local, solo eliminatorias con empate a los 120')",
+      "awayPenalties": "number | string (Penales visitante, solo eliminatorias con empate a los 120')",
       "status": "string ('closed' | 'finished', opcional)"
     }
   ],
@@ -64,6 +66,8 @@ El proyecto está implementado como una **Single Page Application (SPA) estátic
   "updatedAt": "string (ISO timestamp del guardado)"
 }
 ```
+
+`status` es solo una señal de bloqueo de edición (ver sección 4), no indica si el resultado está cargado. La señal real de "resultado oficial cargado" es `hasOfficialResult(match)` (`homeGoals`/`awayGoals` con valor, ver `docs/BRACKET.md`), usada tanto para el motor de puntuación como para resolver ganadores de eliminatorias.
 
 ### C. Colección de Predicciones por Usuario
 * **Ruta:** `/prode/mundial2026/predictions/{uid}`
@@ -97,17 +101,7 @@ El proyecto está implementado como una **Single Page Application (SPA) estátic
 
 ### Eliminatorias (Knockouts)
 * Las llaves de eliminatorias (16avos, octavos, cuartos, semifinales, tercer puesto y final) **se leen directamente** del array `matches` de Firestore.
-* **Estructura Visual del Bracket (Tournament Bracket):** Rediseñado para mostrarse de izquierda a derecha en un flujo horizontal continuo de columnas que agrupan los partidos por fase (16avos de Final, Octavos, Cuartos, Semifinales, Gran Final).
-  * **Contenedor con Scroll Horizontal:** Implementa scroll lateral táctil y en desktop a través de `overflow-x-auto` (`.bracket-scroll-container`) para garantizar la accesibilidad en pantallas móviles sin romper la visual.
-  * **Distribución Vertical Dinámica:** Se utiliza Flexbox con `justify-around` y altura automática (sin `height` fijo en el contenedor de columnas), lo cual hace que el fondo gris se estire exactamente al alto real del contenido y las columnas se distribuyan parejas por `align-items:stretch`.
-  * **Detección de Fase:** Cada partido se clasifica por fase evaluando su campo `group` contra un set de expresiones regulares (16avos, octavos, cuartos, semifinal, tercer puesto, final). La detección de "Gran Final" excluye explícitamente los grupos que matchean cualquier otra fase, porque el texto "Final" aparece como sufijo en el nombre de todas las fases previas (ej. "Cuartos de Final"); sin esa exclusión, cada partido de las demás fases se duplicaba también en la columna de la Final.
-  * **Columnas clickeables:** El título de cada fase es un `<button>` que llama a `scrollBracketToPhase(phaseId)`, haciendo `scrollIntoView` horizontal sobre el `<div id="bracketPhase16|8|4|Semi|Final">` correspondiente dentro de `.bracket-scroll-container`.
-  * **Placeholders del cuadro completo:** `renderColumn(phaseId, title, list, slotCount)` rellena con tarjetas "Por definir" (sin inputs) hasta completar el cupo fijo de la fase: 16avos=16, Octavos=8, Cuartos=4, Semifinal=2, Final=1.
-  * **Tarjetas de Partidos Compactas e Interactivas:** Cada tarjeta muestra el ID, fecha y hora, banderas emojis oficiales de países (vía `getTeamEmoji`), nombre de los equipos, y mantiene intactas las funciones del monolith:
-    * *Admin (Resultados oficiales):* Expone inputs `homeGoals-${id}` y `awayGoals-${id}` (número grande junto al equipo) y botón de "Guardar" llamando a `saveMatchResult`.
-    * *Jugadores:* El número grande junto a cada equipo es el **resultado real** (`match.homeGoals`/`match.awayGoals`, solo lectura). La línea inferior "Pronóstico:" muestra el pronóstico del usuario (`prediction.home`/`prediction.away`), editable vía inputs `predictionHome-${id}` / `predictionAway-${id}` llamando a `savePredictionRow` / `editPredictionRow`. El esquema de datos en Firestore no cambió, solo qué valor se muestra en cada posición.
-  * **Tercer Puesto:** Se renderiza por separado debajo del bracket para mantener el árbol estético de la Gran Final completamente despejado.
-* **Carga manual de cruces por fase:** generalizada en `PHASE_MANUAL_CONFIGS` + `showManualPhaseForm(phaseKey)` / `saveManualPhase(phaseKey)`, reutilizada por los wrappers `showManual16vosForm`/`saveManual16avos` (fecha/hora fija en `SCHEDULE_16AVOS`, ids 73-88) y `showManualOctavosForm`/`saveManualOctavos` (fecha/hora editable por el admin en `SCHEDULE_OCTAVOS`, ids 89-96, porque el calendario oficial de Octavos todavía no está confirmado). Ambos guardan el mismo esquema de partido (`id, date, time, group, home, away, homeGoals, awayGoals, kickoff`) en `prode/mundial2026.matches` vía `window.prodeFirebase.saveData`.
+* El menú Eliminatorias es **SOLO LECTURA** (sin inputs ni botones de guardado): muestra resultado real, pronóstico del usuario y puntos, pero toda la carga de datos (cruces, resultados, penales) se hace desde el panel Admin/Fixture. Ver **`docs/BRACKET.md`** para el detalle completo de topología, esquema visual, arquitectura de carga por rol y las lecciones de diseño que llevaron a este modelo (bug histórico de ids duplicados en el DOM incluido).
 * **Generación automática de 16avos de Final:** El administrador dispone de un botón para generar la fase de 16avos de Final en Firestore basándose en los standings de los 12 grupos de la fase de grupos, siguiendo el formato de la Copa Mundial FIFA 2026:
   * `getQualifiedTeams()`: Obtiene 1ros y 2dos de cada grupo (A al L), y ordena los 3ros por Puntos, Diferencia de Goles y Goles a Favor para obtener a los 8 mejores terceros clasificados.
   * `matchThirdsAndLeftover(winners, thirdsList)`: Algoritmo de backtracking recursivo que empareja a los 8 mejores terceros contra 8 de los 9 líderes de grupo (`A, B, D, E, G, I, K, L` y `C`, priorizando dejar a `C` como sobrante), asegurando que ningún tercer puesto juegue contra el ganador de su grupo de origen. Identifica también al único ganador de grupo sobrante (normalmente `C`).
@@ -159,3 +153,4 @@ Cada predicción de partido calcula su puntuación en tiempo real basándose en 
 ## 6. Archivos Críticos del Proyecto
 * **`/index.html`**: Contiene toda la lógica de visualización (fixture, ranking, posiciones), guardado de predicciones, control de bloqueos, autenticación y la declaración de la API de Firebase.
 * **`/firestore.rules`**: Contiene las reglas de seguridad de Firestore que garantizan la integridad de la base de datos (ej. restringir que usuarios comunes editen predicciones ajenas o datos del fixture global).
+* **`docs/BRACKET.md`**: Memoria dedicada al módulo de eliminatorias (topología, esquema visual, arquitectura de carga por rol, lecciones de diseño y pendientes conocidos). Consultar antes de tocar `renderEliminatorias`, `BRACKET_ADVANCEMENT` o el panel admin de cruces/penales.

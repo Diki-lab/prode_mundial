@@ -66,6 +66,38 @@ Rama de trabajo: `fix/user-identity-by-uid`
 4. En `saveCurrentUserPredictions`: antes de guardar, normalizar todos los `player` del array local al `currentProfileName` actual. Esto garantiza que al guardar despues de un cambio de nombre, todos los pronosticos del usuario queden con el nombre nuevo.
 5. Al actualizar `displayName` con `updateDisplayName`: tambien recargar y re-guardar los pronosticos del usuario para propagar el nombre nuevo a todas las entradas existentes en Firestore.
 
+---
+
+### Bug 3 — Los penales del bracket rompen la altura uniforme de las tarjetas
+
+**Causa raiz:** el `span` que muestra gol+penales (`getMatchScoreText`, formato `"1 (4)"`)
+tiene ancho fijo `w-6` (24px) y no tiene `whitespace-nowrap`. El texto no entra en 24px a
+`text-xs` y el navegador lo envuelve en mas de una linea dentro del mismo span. Visualmente
+se ve "apilado debajo del gol" aunque el markup ya esta en la fila correcta (un unico
+`span`, misma fila que el equipo). Documentado en detalle, con hipotesis de causa raiz
+compartida con el fondo gris del contenedor, en `docs/BRACKET.md` seccion 5.
+
+**Ubicaciones en `index.html`:**
+
+- `renderEliminatorias` → `renderMatchCard`: `homeScoreHtml`/`awayScoreHtml` usan
+  `<span class="w-6 text-right font-bold text-xs ...">` sin `whitespace-nowrap` para
+  renderizar `getMatchScoreText(match, 'home'|'away')`.
+- El contenedor `#tournamentBracketContainer` (`bg-slate-50 dark:bg-slate-900/40
+  rounded-2xl ...`) no siempre cubre todo el alto real del contenido — probablemente
+  porque una columna con una tarjeta de penales mas alta que sus vecinas rompe el calculo
+  de alto uniforme que usa `items-stretch` para estirar el resto de las columnas.
+
+**Solucion propuesta:**
+
+1. Agregar `whitespace-nowrap` a `homeScoreHtml`/`awayScoreHtml` en `renderMatchCard` para
+   que `"1 (4)"` quede en una sola linea sin importar el ancho fijo del `span`.
+2. Si con eso el ancho `w-6` queda visualmente apretado para marcadores con penales,
+   ensanchar el `span` (o pasar a ancho automatico con `min-w`) en vez de angostar el
+   font-size, para no perder legibilidad.
+3. Volver a verificar el fondo gris del contenedor despues del fix anterior: si la causa
+   raiz es compartida (altura de tarjeta no uniforme), puede resolverse solo sin tocar el
+   contenedor.
+
 ## Prioridad alta
 
 - Activar Email/Password en Firebase Authentication.
