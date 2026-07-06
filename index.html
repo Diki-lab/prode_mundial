@@ -944,6 +944,52 @@
       min-width: 0;
     }
 
+    .player-info {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .player-stats-mobile {
+      display: none;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .stat-mini {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 1px 5px;
+      border-radius: 4px;
+      line-height: 1.2;
+      white-space: nowrap;
+    }
+
+    .stat-mini.count-3 {
+      background: var(--pleno-soft);
+      color: var(--pleno-text);
+    }
+    .stat-mini.count-1 {
+      background: var(--parcial-soft);
+      color: var(--parcial-text);
+    }
+    .stat-mini.count-0 {
+      background: var(--fallo-soft);
+      color: var(--fallo-text);
+    }
+    .stat-mini.count-empty {
+      background: var(--sincargar-soft);
+      color: var(--sincargar-text);
+    }
+
+    .desktop-only {
+      display: table-cell;
+    }
+
     .ranking-avatar {
       width: 38px;
       height: 38px;
@@ -1365,6 +1411,14 @@
     }
 
     @media (max-width: 720px) {
+      .desktop-only {
+        display: none !important;
+      }
+
+      .player-stats-mobile {
+        display: inline-flex;
+      }
+
       body {
         overflow-x: hidden;
       }
@@ -2138,10 +2192,10 @@
               <th>Posición</th>
               <th>Jugador</th>
               <th>Puntos</th>
-              <th>3 pts</th>
-              <th>1 pt</th>
-              <th>0 pts</th>
-              <th>Sin cargar</th>
+              <th class="desktop-only">3 pts</th>
+              <th class="desktop-only">1 pt</th>
+              <th class="desktop-only">0 pts</th>
+              <th class="desktop-only">Sin cargar</th>
             </tr>
           </thead>
           <tbody id="rankingBody"></tbody>
@@ -4820,14 +4874,22 @@
             <td>
               <span class="ranking-player">
                 ${buildAvatarMarkup(getAvatarForPlayer(row.player), 'ranking-avatar')}
-                <strong>${escapeHtml(row.player)}</strong>
+                <div class="player-info">
+                  <strong>${escapeHtml(row.player)}</strong>
+                  <div class="player-stats-mobile">
+                    <span class="stat-mini count-3">3p: ${row.count3}</span>
+                    <span class="stat-mini count-1">1p: ${row.count1}</span>
+                    <span class="stat-mini count-0">0p: ${row.count0}</span>
+                    <span class="stat-mini count-empty">SC: ${row.countSinCargar}</span>
+                  </div>
+                </div>
               </span>
             </td>
             <td><span class="points-badge">${row.points}</span></td>
-            <td><span class="stat-badge count-3">${row.count3}</span></td>
-            <td><span class="stat-badge count-1">${row.count1}</span></td>
-            <td><span class="stat-badge count-0">${row.count0}</span></td>
-            <td><span class="stat-badge count-empty">${row.countSinCargar}</span></td>
+            <td class="desktop-only"><span class="stat-badge count-3">${row.count3}</span></td>
+            <td class="desktop-only"><span class="stat-badge count-1">${row.count1}</span></td>
+            <td class="desktop-only"><span class="stat-badge count-0">${row.count0}</span></td>
+            <td class="desktop-only"><span class="stat-badge count-empty">${row.countSinCargar}</span></td>
           </tr>
         `;
       }).join('');
