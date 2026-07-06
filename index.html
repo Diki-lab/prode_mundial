@@ -37,6 +37,16 @@
       --warning-text: #9a5b00;
       --danger-soft: #fff1f1;
       --danger-text: #b42318;
+      --points-soft: #e0e7ff;
+      --points-text: #3730a3;
+      --pleno-soft: #d1fae5;
+      --pleno-text: #065f46;
+      --parcial-soft: #fef3c7;
+      --parcial-text: #92400e;
+      --fallo-soft: #ffe4e6;
+      --fallo-text: #9f1239;
+      --sincargar-soft: #f1f5f9;
+      --sincargar-text: #334155;
       --shadow: 0 12px 30px rgba(13, 71, 161, .10);
       --radius: 22px;
     }
@@ -62,6 +72,16 @@
       --warning-text: #fbbf24;
       --danger-soft: #3b1518;
       --danger-text: #f87171;
+      --points-soft: #1e1b4b;
+      --points-text: #a5b4fc;
+      --pleno-soft: #064e3b;
+      --pleno-text: #6ee7b7;
+      --parcial-soft: #451a03;
+      --parcial-text: #fcd34d;
+      --fallo-soft: #4c0519;
+      --fallo-text: #fda4af;
+      --sincargar-soft: #1e293b;
+      --sincargar-text: #cbd5e1;
       --shadow: 0 12px 30px rgba(0, 0, 0, .28);
     }
 
@@ -733,8 +753,8 @@
       min-width: 38px;
       height: 30px;
       border-radius: 999px;
-      background: var(--warning-soft);
-      color: var(--warning-text);
+      background: var(--points-soft);
+      color: var(--points-text);
       font-weight: 900;
     }
 
@@ -748,21 +768,20 @@
       font-weight: 900;
     }
     .stat-badge.count-3 {
-      background: var(--success-soft);
-      color: var(--success-text);
+      background: var(--pleno-soft);
+      color: var(--pleno-text);
     }
     .stat-badge.count-1 {
-      background: var(--warning-soft);
-      color: var(--warning-text);
+      background: var(--parcial-soft);
+      color: var(--parcial-text);
     }
     .stat-badge.count-0 {
-      background: var(--danger-soft);
-      color: var(--danger-text);
+      background: var(--fallo-soft);
+      color: var(--fallo-text);
     }
     .stat-badge.count-empty {
-      background: var(--soft);
-      color: var(--muted);
-      border: 1px solid var(--border);
+      background: var(--sincargar-soft);
+      color: var(--sincargar-text);
     }
 
     .saved-badge {
