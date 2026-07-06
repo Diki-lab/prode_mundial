@@ -738,6 +738,33 @@
       font-weight: 900;
     }
 
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 38px;
+      height: 30px;
+      border-radius: 999px;
+      font-weight: 900;
+    }
+    .stat-badge.count-3 {
+      background: var(--success-soft);
+      color: var(--success-text);
+    }
+    .stat-badge.count-1 {
+      background: var(--warning-soft);
+      color: var(--warning-text);
+    }
+    .stat-badge.count-0 {
+      background: var(--danger-soft);
+      color: var(--danger-text);
+    }
+    .stat-badge.count-empty {
+      background: var(--soft);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
     .saved-badge {
       display: inline-flex;
       align-items: center;
@@ -2092,6 +2119,10 @@
               <th>Posición</th>
               <th>Jugador</th>
               <th>Puntos</th>
+              <th>3 pts</th>
+              <th>1 pt</th>
+              <th>0 pts</th>
+              <th>Sin cargar</th>
             </tr>
           </thead>
           <tbody id="rankingBody"></tbody>
@@ -4714,12 +4745,49 @@
       ])];
 
       return rankingPlayers
-        .map(player => ({
-          player,
-          points: sourcePredictions
-            .filter(prediction => prediction.player === player)
-            .reduce((sum, prediction) => sum + pointsFor(prediction), 0)
-        }))
+        .map(player => {
+          const playerPredictions = sourcePredictions.filter(p => p.player === player);
+          
+          let points = 0;
+          let count3 = 0;
+          let count1 = 0;
+          let count0 = 0;
+          let countSinCargar = 0;
+
+          const predMap = {};
+          playerPredictions.forEach(p => {
+            predMap[p.matchId] = p;
+          });
+
+          matches.forEach(match => {
+            const pred = predMap[match.id];
+            if (!pred) {
+              countSinCargar++;
+            } else {
+              const pts = pointsFor(pred);
+              points += pts;
+
+              if (match.homeGoals !== '' && match.awayGoals !== '') {
+                if (pts === 3) {
+                  count3++;
+                } else if (pts === 1) {
+                  count1++;
+                } else {
+                  count0++;
+                }
+              }
+            }
+          });
+
+          return {
+            player,
+            points,
+            count3,
+            count1,
+            count0,
+            countSinCargar
+          };
+        })
         .sort((a, b) => b.points - a.points || a.player.localeCompare(b.player));
     }
 
@@ -4737,6 +4805,10 @@
               </span>
             </td>
             <td><span class="points-badge">${row.points}</span></td>
+            <td><span class="stat-badge count-3">${row.count3}</span></td>
+            <td><span class="stat-badge count-1">${row.count1}</span></td>
+            <td><span class="stat-badge count-0">${row.count0}</span></td>
+            <td><span class="stat-badge count-empty">${row.countSinCargar}</span></td>
           </tr>
         `;
       }).join('');
@@ -6191,7 +6263,7 @@
 
       totals.forEach((row, index) => {
         const medal = ['🥇', '🥈', '🥉'][index] || `${index + 1}°`;
-        text += `${medal} ${row.player} - ${row.points} pts\n`;
+        text += `${medal} ${row.player} - ${row.points} pts (3pts: ${row.count3}, 1pt: ${row.count1}, 0pts: ${row.count0}, SC: ${row.countSinCargar})\n`;
       });
 
       return text;
@@ -6352,11 +6424,16 @@
           { player: 'Ana', matchId: 9001, home: 2, away: 1 },
           { player: 'Ana', matchId: 9002, home: 1, away: 1 },
           { player: 'Bruno', matchId: 9001, home: 2, away: 1 },
+          { player: 'Bruno', matchId: 9002, home: 2, away: 0 },
           { player: 'Carla', matchId: 9002, home: 1, away: 1 }
         ];
         const testRankingTotals = getRankingTotals();
         assertTest('ranking ordena por puntos descendente', testRankingTotals.map(row => row.player).join(',') === 'Ana,Bruno,Carla');
         assertTest('top 3 conserva puntos correctos', testRankingTotals.map(row => row.points).join(',') === '4,3,1');
+        assertTest('ranking calcula aciertos de 3 puntos correctos', testRankingTotals.find(row => row.player === 'Ana').count3 === 1);
+        assertTest('ranking calcula aciertos de 1 punto correctos', testRankingTotals.find(row => row.player === 'Ana').count1 === 1);
+        assertTest('ranking calcula aciertos de 0 puntos correctos', testRankingTotals.find(row => row.player === 'Bruno').count0 === 1);
+        assertTest('ranking calcula sin cargar correctos', testRankingTotals.find(row => row.player === 'Carla').countSinCargar === 1);
         renderHomePodium();
         const testPodiumCards = [...document.querySelectorAll('#homePodium .podium-card')];
         assertTest('podio visual ubica segundo primero tercero', testPodiumCards.map(card => card.classList.contains('second') ? 'second' : card.classList.contains('first') ? 'first' : 'third').join(',') === 'second,first,third');
