@@ -4835,7 +4835,9 @@
           matches.forEach(match => {
             const pred = predMap[match.id];
             if (!pred) {
-              countSinCargar++;
+              if (hasMatchStarted(match) || hasOfficialResult(match)) {
+                countSinCargar++;
+              }
             } else {
               const pts = pointsFor(pred);
               points += pts;
