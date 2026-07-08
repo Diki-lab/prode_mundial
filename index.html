@@ -4840,7 +4840,7 @@
               const pts = pointsFor(pred);
               points += pts;
 
-              if (match.homeGoals !== '' && match.awayGoals !== '') {
+              if (hasOfficialResult(match)) {
                 if (pts === 3) {
                   count3++;
                 } else if (pts === 1) {
