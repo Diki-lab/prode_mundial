@@ -6397,8 +6397,30 @@
     }
 
     function runTests() {
+      const backupPlayers = players;
+      const backupMatches = matches;
+      const backupPredictions = predictions;
+      const backupRankingPredictions = rankingPredictions;
+      const backupRegisteredUserProfiles = registeredUserProfiles;
+      const backupIsAdmin = isAdmin;
+      const backupArePredictionsLocked = arePredictionsLocked;
+      const backupIsResultLocked = isResultLocked;
+      const backupCurrentProfileName = currentProfileName;
+
+      players = [...defaultPlayers];
+      matches = [...defaultMatches];
+      predictions = [];
+      rankingPredictions = [];
+      registeredUserProfiles = [];
+      isAdmin = false;
+      arePredictionsLocked = false;
+      isResultLocked = false;
+      currentProfileName = '';
+
       testsPassedCount = 0;
-      const testMatches = [{ id: 1, homeGoals: 2, awayGoals: 1 }];
+
+      try {
+        const testMatches = [{ id: 1, homeGoals: 2, awayGoals: 1 }];
 
       assertTest('defaultPlayers tiene 6 jugadores', defaultPlayers.length === 6);
       assertTest('primer jugador corregido', defaultPlayers[0] === 'Alejandro Mc Farlane');
@@ -6706,6 +6728,17 @@
       assertTest('fuente ranking usa subcoleccion como prioridad', getRankingPredictionSource([{ displayName: 'Ana', predictions: duplicatePredictions }], [{ player: 'Ana', matchId: 1, home: 0, away: 0 }]).length === 1);
       assertTest('progreso de pronósticos calcula total', getPredictionProgress(currentProfileName).total === matches.length);
       console.log(`✅ Todos los tests pasaron con éxito (${testsPassedCount} tests)`);
+      } finally {
+        players = backupPlayers;
+        matches = backupMatches;
+        predictions = backupPredictions;
+        rankingPredictions = backupRankingPredictions;
+        registeredUserProfiles = backupRegisteredUserProfiles;
+        isAdmin = backupIsAdmin;
+        arePredictionsLocked = backupArePredictionsLocked;
+        isResultLocked = backupIsResultLocked;
+        currentProfileName = backupCurrentProfileName;
+      }
     }
 
     try {
