@@ -5426,22 +5426,24 @@
       return bracket;
     }
 
-    function getTeamEmoji(teamName) {
-      const emojis = {
-        'México': '🇲🇽', 'Sudáfrica': '🇿🇦', 'Corea del Sur': '🇰🇷', 'República Checa': '🇨🇿',
-        'Canadá': '🇨🇦', 'Bosnia y Herzegovina': '🇧🇦', 'Estados Unidos': '🇺🇸', 'Paraguay': '🇵🇾',
-        'Australia': '🇦🇺', 'Turquía': '🇹🇷', 'Catar': '🇶🇦', 'Suiza': '🇨🇭', 'Brasil': '🇧🇷',
-        'Marruecos': '🇲🇦', 'Haití': '🇭🇹', 'Escocia': '🏴󠁧󠁢󠁳󠁣󠁴󠁿', 'Alemania': '🇩🇪', 'Curazao': '🇨🇼',
-        'Países Bajos': '🇳🇱', 'Japón': '🇯🇵', 'Costa de Marfil': '🇨🇮', 'Ecuador': '🇪🇨',
-        'Suecia': '🇸🇪', 'Túnez': '🇹🇳', 'España': '🇪🇸', 'Cabo Verde': '🇨🇻', 'Bélgica': '🇧🇪',
-        'Egipto': '🇪🇬', 'Arabia Saudita': '🇸🇦', 'Uruguay': '🇺🇾', 'Irán': '🇮🇷', 'Nueva Zelanda': '🇳🇿',
-        'Austria': '🇦🇹', 'Jordania': '🇯🇴', 'Francia': '🇫🇷', 'Senegal': '🇸🇳', 'Irak': '🇮🇶',
-        'Noruega': '🇳🇴', 'Argentina': '🇦🇷', 'Argelia': '🇩🇿', 'Portugal': '🇵🇹', 'RD Congo': '🇨🇩',
-        'R.D. del Congo': '🇨🇩', 'Inglaterra': '🏴󠁧󠁢󠁥󠁮󠁧󠁿', 'Croacia': '🇭🇷', 'Ghana': '🇬🇭', 'Panamá': '🇵🇦',
-        'Uzbekistán': '🇺🇿', 'Colombia': '🇨🇴', 'Italia': '🇮🇹', 'Chile': '🇨🇱', 'Perú': '🇵🇪'
+    function getTeamFlagHtml(teamName) {
+      const codes = {
+        'México': 'mx', 'Sudáfrica': 'za', 'Corea del Sur': 'kr', 'República Checa': 'cz',
+        'Canadá': 'ca', 'Bosnia y Herzegovina': 'ba', 'Estados Unidos': 'us', 'Paraguay': 'py',
+        'Australia': 'au', 'Turquía': 'tr', 'Catar': 'qa', 'Suiza': 'ch', 'Brasil': 'br',
+        'Marruecos': 'ma', 'Haití': 'ht', 'Escocia': 'gb-sct', 'Alemania': 'de', 'Curazao': 'cw',
+        'Países Bajos': 'nl', 'Japón': 'jp', 'Costa de Marfil': 'ci', 'Ecuador': 'ec',
+        'Suecia': 'se', 'Túnez': 'tn', 'España': 'es', 'Cabo Verde': 'cv', 'Bélgica': 'be',
+        'Egipto': 'eg', 'Arabia Saudita': 'sa', 'Uruguay': 'uy', 'Irán': 'ir', 'Nueva Zelanda': 'nz',
+        'Austria': 'at', 'Jordania': 'jo', 'Francia': 'fr', 'Senegal': 'sn', 'Irak': 'iq',
+        'Noruega': 'no', 'Argentina': 'ar', 'Argelia': 'dz', 'Portugal': 'pt', 'RD Congo': 'cd',
+        'R.D. del Congo': 'cd', 'Inglaterra': 'gb-eng', 'Croacia': 'hr', 'Ghana': 'gh', 'Panamá': 'pa',
+        'Uzbekistán': 'uz', 'Colombia': 'co', 'Italia': 'it', 'Chile': 'cl', 'Perú': 'pe'
       };
       const name = (teamName || '').trim();
-      return emojis[name] || '🏳️';
+      const code = codes[name];
+      if (!code) return '🏳️';
+      return `<img src="https://flagcdn.com/w20/${code}.png" class="w-4 h-3 inline-block align-middle select-none rounded-[1px] shadow-[0_0_1px_rgba(0,0,0,0.3)]" style="object-fit:cover" alt="${escapeHtml(name)}">`;
     }
 
     // Topología fija del cuadro de eliminatorias Mundial 2026 (validada contra el
@@ -5603,7 +5605,7 @@
               <!-- Fila Local (País 1) -->
               <div class="flex justify-between items-center gap-2">
                 <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-xs mr-0.5 select-none">${getTeamEmoji(match.home)}</span>
+                  <span class="text-xs mr-0.5 select-none flex items-center shrink-0 min-w-[16px]">${getTeamFlagHtml(match.home)}</span>
                   <span class="truncate text-xs font-bold ${match.home ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500 italic'}">${homeLabel}</span>
                 </div>
                 ${homeScoreHtml}
@@ -5612,7 +5614,7 @@
               <!-- Fila Visitante (País 2) -->
               <div class="flex justify-between items-center gap-2">
                 <div class="flex items-center gap-1.5 min-w-0 flex-1">
-                  <span class="text-xs mr-0.5 select-none">${getTeamEmoji(match.away)}</span>
+                  <span class="text-xs mr-0.5 select-none flex items-center shrink-0 min-w-[16px]">${getTeamFlagHtml(match.away)}</span>
                   <span class="truncate text-xs font-bold ${match.away ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500 italic'}">${awayLabel}</span>
                 </div>
                 ${awayScoreHtml}
