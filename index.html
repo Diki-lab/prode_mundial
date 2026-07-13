@@ -2827,6 +2827,15 @@
       return /^#[0-9a-f]{6}$/i.test(color || '') ? color : '#0d47a1';
     }
 
+    const AVAILABLE_LOCAL_AVATARS = new Set([
+      'asinderman',
+      'chumeres',
+      'dmcfarlane',
+      'kryz',
+      'leandro',
+      'liriarte'
+    ]);
+
     function getAvatarSlug(value) {
       const base = String(value || '').trim().split('@')[0];
       return base
@@ -2838,7 +2847,10 @@
 
     function getLocalAvatarPath(value) {
       const slug = getAvatarSlug(value);
-      return slug ? `${LOCAL_AVATAR_BASE_PATH}${slug}.jpg` : '';
+      if (slug && AVAILABLE_LOCAL_AVATARS.has(slug)) {
+        return `${LOCAL_AVATAR_BASE_PATH}${slug}.jpg`;
+      }
+      return '';
     }
 
     function getLocalAvatarPathFromProfile(profile = {}) {
