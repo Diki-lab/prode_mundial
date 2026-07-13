@@ -4934,6 +4934,7 @@
     function getTeamsByGroup() {
       const groups = {};
       matches.forEach(match => {
+        if (!match.group.includes('Grupo')) return;
         const group = getSimpleGroupName(match.group);
         if (!groups[group]) groups[group] = new Set();
         groups[group].add(match.home);
