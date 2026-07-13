@@ -1086,6 +1086,10 @@
       gap: 18px;
     }
 
+    .dashboard-grid.admin-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
     .dashboard-card {
       min-height: 230px;
       border-radius: 22px;
@@ -1384,7 +1388,8 @@
         max-width: 130px;
       }
 
-      .dashboard-grid {
+      .dashboard-grid,
+      .dashboard-grid.admin-grid {
         grid-template-columns: repeat(2, 1fr);
       }
 
@@ -1778,6 +1783,7 @@
       }
 
       .dashboard-grid,
+      .dashboard-grid.admin-grid,
       .home-podium {
         grid-template-columns: 1fr;
       }
@@ -4362,6 +4368,15 @@
       adminOnlyCards.forEach(element => {
         element.style.display = isAdmin ? '' : 'none';
       });
+
+      const dashboardGrid = document.querySelector('.dashboard-grid');
+      if (dashboardGrid) {
+        if (isAdmin) {
+          dashboardGrid.classList.add('admin-grid');
+        } else {
+          dashboardGrid.classList.remove('admin-grid');
+        }
+      }
     }
 
     function renderSelectors() {
