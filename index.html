@@ -6387,12 +6387,14 @@
       renderPenaltiesPanel();
     }
 
+    let testsPassedCount = 0;
     function assertTest(name, condition) {
       if (!condition) throw new Error(`Test falló: ${name}`);
-      console.log(`Test OK: ${name}`);
+      testsPassedCount++;
     }
 
     function runTests() {
+      testsPassedCount = 0;
       const testMatches = [{ id: 1, homeGoals: 2, awayGoals: 1 }];
 
       assertTest('defaultPlayers tiene 6 jugadores', defaultPlayers.length === 6);
@@ -6700,6 +6702,7 @@
       assertTest('dedupePredictionList evita duplicados por jugador y partido', dedupePredictionList(duplicatePredictions).length === 1);
       assertTest('fuente ranking usa subcoleccion como prioridad', getRankingPredictionSource([{ displayName: 'Ana', predictions: duplicatePredictions }], [{ player: 'Ana', matchId: 1, home: 0, away: 0 }]).length === 1);
       assertTest('progreso de pronósticos calcula total', getPredictionProgress(currentProfileName).total === matches.length);
+      console.log(`✅ Todos los tests pasaron con éxito (${testsPassedCount} tests)`);
     }
 
     try {
