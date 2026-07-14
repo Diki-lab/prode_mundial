@@ -3136,12 +3136,13 @@
     function isPredictionEditableForMatch(match, now = new Date()) {
       return !arePredictionsLocked
         && !isMatchStatusClosed(match)
-        && !hasMatchStarted(match, now);
+        && !hasMatchStarted(match, now)
+        && !hasOfficialResult(match);
     }
 
     function getPredictionBlockedReason(match) {
       if (arePredictionsLocked) return 'Cerrado';
-      if (isMatchStatusClosed(match)) return 'Partido cerrado';
+      if (isMatchStatusClosed(match) || hasOfficialResult(match)) return 'Partido cerrado';
       if (hasMatchStarted(match)) return 'Partido iniciado';
       return '';
     }
@@ -6646,6 +6647,7 @@
       assertTest('partido con kickoff bloquea al inicio Argentina', isPredictionEditableForMatch({ kickoff: '2026-06-12T22:00:00-03:00' }, new Date('2026-06-12T22:00:00-03:00')) === false);
       assertTest('partido closed bloquea pronostico futuro', isPredictionEditableForMatch({ date: '13/06/2026', status: 'closed' }, new Date(2026, 5, 12, 12)) === false);
       assertTest('partido finished bloquea pronostico futuro', isPredictionEditableForMatch({ date: '13/06/2026', status: 'finished' }, new Date(2026, 5, 12, 12)) === false);
+      assertTest('partido con resultado oficial bloquea pronostico futuro', isPredictionEditableForMatch({ date: '13/06/2026', homeGoals: 2, awayGoals: 1 }, new Date(2026, 5, 12, 12)) === false);
       assertTest('filtro pronosticos muestra fecha corta', getPredictionDateFilterLabel({ date: '11/06/2026', group: 'Fecha 1 - Grupo A' }) === 'Fecha 1 - 11/06/26');
       assertTest('filtro pronosticos muestra hora si existe', getPredictionDateFilterLabel({ date: '12/06/2026', time: '22:00', group: 'Fecha 1 - Grupo B' }) === 'Fecha 1 - 12/06/26 22:00');
       assertTest('filtro pronosticos muestra horario oficial del fixture', getPredictionDateFilterLabel(defaultMatches.find(match => match.id === 4)) === 'Fecha 1 - 12/06/26 22:00');
